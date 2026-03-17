@@ -15,15 +15,15 @@ const LINK_TOOLTIPS = [
 
 function prepareAboutContent(raw: string): string {
   const lines = raw.trimEnd().split('\n');
-  const contactLine = '[email] · [github] · [linkedin] · [medium]';
+  const contactLine = '[email] · [github] · [linkedin] · [writing]';
   const linkedin = 'https://www.linkedin.com/in/daniel-visca/';
   const github = 'https://github.com/DanielVisca';
-  const medium = 'https://medium.com/@danielvisca';
-  const books = 'https://www.goodreads.com/user/show/54860314-daniel';
+  const writing = 'https://medium.com/@danielvisca';
+  const reading = 'https://www.goodreads.com/user/show/54860314-daniel';
   const strava = 'https://www.strava.com/athletes/69493448';
   const emailSubject = encodeURIComponent("Hey from the internet (your site said I should say hi 👋)");
   const email = `https://mail.google.com/mail/?view=cm&fs=1&to=danielvisca96@gmail.com&su=${emailSubject}`;
-  const contactWithLinks = `[email](${email}) · [github](${github}) · [linkedin](${linkedin}) · [medium](${medium}) · [books](${books}) · [strava](${strava}) · [resume](/resume.pdf)`;
+  const contactWithLinks = `[email](${email}) · [github](${github}) · [linkedin](${linkedin}) · [reading](${reading}) · [writing](${writing}) · [running](${strava}) · [resume](/resume.pdf)`;
 
   const buckAndBoo = "Oh and while you're here... my mom is a graphic designer and makes awesome shirts. It would make her week if you bought one → [Buck & Boo](https://buckandboo.com/).";
 

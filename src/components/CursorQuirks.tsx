@@ -419,17 +419,19 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
     return () => cancelAnimationFrame(raf);
   }, [phase, windowSize.w]);
 
-  // Adventure: climbing -> progress 0..1 over CLIMB_DURATION_MS -> cheering
+  // Adventure: climbing -> progress 0..1 over CLIMB_DURATION_MS (ease-out so final push feels slower) -> cheering
   useEffect(() => {
     if (phase !== 'climbing' || windowSize.h === 0) return;
     const start = Date.now();
     let raf = 0;
+    const easeOut = (t: number) => 1 - (1 - t) ** 2; // slower near summit
     const tick = () => {
       const elapsed = Date.now() - start;
-      const progress = Math.min(1, elapsed / CLIMB_DURATION_MS);
+      const linear = Math.min(1, elapsed / CLIMB_DURATION_MS);
+      const progress = easeOut(linear);
       climbProgressRef.current = progress;
       setClimbProgress(progress);
-      if (progress >= 1) {
+      if (linear >= 1) {
         queueMicrotask(() => setPhase('cheering'));
         return;
       }
@@ -447,16 +449,19 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
     return () => clearTimeout(t);
   }, [phase]);
 
-  // Adventure: climbing_down -> progress 1..0 over CLIMB_DOWN_DURATION_MS -> remounting
+  // Adventure: climbing_down -> progress 1..0 (ease-in so leaving summit is slower) -> remounting
   useEffect(() => {
     if (phase !== 'climbing_down' || windowSize.h === 0) return;
     const start = Date.now();
     let raf = 0;
+    const easeIn = (t: number) => t * t; // slower when leaving summit
     const tick = () => {
       const elapsed = Date.now() - start;
-      const progress = Math.max(0, 1 - elapsed / CLIMB_DOWN_DURATION_MS);
-      climbProgressRef.current = progress;
-      setClimbProgress(progress);
+      const linear = Math.min(1, elapsed / CLIMB_DOWN_DURATION_MS);
+      const progress = Math.max(0, 1 - linear);
+      const progressEased = easeIn(progress); // 1 at start, 0 at end
+      climbProgressRef.current = progressEased;
+      setClimbProgress(progressEased);
       if (progress <= 0) {
         queueMicrotask(() => setPhase('remounting'));
         return;
@@ -646,6 +651,11 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
           80% { opacity: 0.3; }
           100% { transform: translateX(120px) translateY(-10px); opacity: 0; }
         }
+        @keyframes summitCrest {
+          0% { transform: translateY(0); }
+          35% { transform: translateY(-14px); }
+          100% { transform: translateY(0); }
+        }
         @keyframes cheerBounce {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-8px); }
@@ -693,6 +703,8 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         .climb-arm-right { animation: climbArmRightReach 1.5s ease-in-out infinite; }
         .climb-leg-left { animation: climbLegStepLeft 1.5s ease-in-out infinite; }
         .climb-leg-right { animation: climbLegStepRight 1.5s ease-in-out infinite; }
+        .climb-near-top .climb-arm-left, .climb-near-top .climb-arm-right { animation-duration: 2.2s; }
+        .climb-near-top .climb-leg-left, .climb-near-top .climb-leg-right { animation-duration: 2.2s; }
         .climb-slip { animation: climbSlip 4s ease-in-out infinite; }
         .falling-rock { animation: fallingRock 1.5s ease-in forwards; }
         .falling-rock-delay-1 { animation: fallingRock 1.8s ease-in 0.6s forwards; }
@@ -700,7 +712,8 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         .wind-particle { animation: windParticle 3s linear infinite; }
         .wind-particle-delay-1 { animation: windParticle 3.5s linear 0.8s infinite; }
         .wind-particle-delay-2 { animation: windParticle 2.8s linear 1.6s infinite; }
-        .cheer-bounce { animation: cheerBounce 0.5s ease-in-out 3; }
+        .summit-crest { animation: summitCrest 0.45s ease-out forwards; }
+        .cheer-bounce { animation: cheerBounce 0.5s ease-in-out 3 0.45s; }
         .cheer-arm-left { animation: cheerArmLeft 0.4s ease-out forwards; }
         .cheer-arm-right { animation: cheerArmRight 0.4s ease-out forwards; }
         .volcano-glow { animation: volcanoGlow 2s ease-in-out infinite; }
@@ -967,15 +980,22 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
       {(phase === 'climbing' || phase === 'cheering' || phase === 'climbing_down') && (() => {
         const volcanoHeightPx = Math.max(240, windowSize.h * 0.58);
         const climbBottom = climbProgress * volcanoHeightPx * 0.97;
+        const summitOffset = phase === 'cheering' ? 14 : 0; // stand on crater rim when summited
         const isDown = phase === 'climbing_down';
         const isClimbing = phase === 'climbing' || isDown;
+        const nearTop = isClimbing && climbProgress > 0.82;
+        const containerTransform = [
+          'translateX(-50%)',
+          isDown ? 'scaleX(-1)' : '',
+          nearTop ? 'rotate(-2deg)' : '',
+        ].filter(Boolean).join(' ');
         return (
           <div
-            className={`pointer-events-none absolute flex flex-col items-center ${isClimbing ? 'climb-slip' : 'cheer-bounce'}`}
+            className={`pointer-events-none absolute flex flex-col items-center ${isClimbing ? 'climb-slip' : 'summit-crest cheer-bounce'} ${nearTop ? 'climb-near-top' : ''}`}
             style={{
               left: `${VOLCANO_TARGET_RATIO * 100}%`,
-              bottom: climbBottom,
-              transform: `translateX(-50%)${isDown ? ' scaleX(-1)' : ''}`,
+              bottom: climbBottom + summitOffset,
+              transform: containerTransform,
             }}
           >
             {isClimbing && (
@@ -986,9 +1006,11 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
                 <div className="falling-rock absolute w-1.5 h-1.5 rounded-full bg-stone-500/70" style={{ top: -10, left: 20 }} />
                 <div className="falling-rock-delay-1 absolute w-2 h-2 rounded-sm bg-stone-600/60" style={{ top: -5, left: -15 }} />
                 <div className="falling-rock-delay-2 absolute w-1 h-1 rounded-full bg-stone-500/50" style={{ top: -15, left: 5 }} />
-                <svg className="absolute pointer-events-none" style={{ top: PEEKER_HEAD_SIZE + 20, left: -10, width: 60, height: 200, overflow: 'visible' }}>
-                  <path d="M30,0 Q15,60 25,120 Q35,160 20,200" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" fill="none" strokeDasharray="4 3" />
-                  <circle cx={20} cy={200} r={3} fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+                {/* Climbing rope: harness on back + rope trailing down to anchor (carabiner at end) */}
+                <div className="absolute rounded-md border border-white/20 bg-black/60" style={{ width: 22, height: 18, top: PEEKER_HEAD_SIZE + 36, left: '50%', transform: 'translateX(-50%)', marginLeft: 4, zIndex: 0 }} aria-hidden />
+                <svg className="absolute pointer-events-none" style={{ top: PEEKER_HEAD_SIZE + 48, left: '50%', marginLeft: -8, width: 50, height: 200, overflow: 'visible', zIndex: 0 }} aria-hidden>
+                  <path d="M25,0 Q12,55 22,110 Q30,150 18,200" stroke="rgba(255,255,255,0.25)" strokeWidth="2" fill="none" strokeDasharray="5 4" strokeLinecap="round" />
+                  <circle cx={18} cy={200} r={4} fill="rgba(200,200,200,0.2)" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
                 </svg>
               </>
             )}
