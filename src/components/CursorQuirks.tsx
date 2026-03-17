@@ -754,10 +754,17 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 400" preserveAspectRatio="none">
             <defs>
               <linearGradient id="volcCone" x1="0.3" y1="0" x2="0.7" y2="1">
-                <stop offset="0%" stopColor="#4a4035" />
-                <stop offset="40%" stopColor="#3a3028" />
-                <stop offset="70%" stopColor="#2a231c" />
-                <stop offset="100%" stopColor="#3d352c" />
+                <stop offset="0%" stopColor="#5c5248" />
+                <stop offset="25%" stopColor="#4a4035" />
+                <stop offset="50%" stopColor="#3a3028" />
+                <stop offset="75%" stopColor="#2e2620" />
+                <stop offset="100%" stopColor="#252019" />
+              </linearGradient>
+              <linearGradient id="volcConeSide" x1="0" y1="0.5" x2="1" y2="0.5">
+                <stop offset="0%" stopColor="#2a231c" />
+                <stop offset="35%" stopColor="#3d352c" />
+                <stop offset="65%" stopColor="#4a4035" />
+                <stop offset="100%" stopColor="#5a5045" />
               </linearGradient>
               <linearGradient id="volcSnow" x1="0.5" y1="0" x2="0.5" y2="1">
                 <stop offset="0%" stopColor="#e8e8f0" />
@@ -773,18 +780,36 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
               <filter id="lavaGlow"><feGaussianBlur in="SourceGraphic" stdDeviation="6" /></filter>
               <filter id="bikeGlow"><feGaussianBlur stdDeviation="1.5" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
             </defs>
-            <polygon points="150,12 285,390 15,390" fill="url(#volcCone)" stroke="#3d352c" strokeWidth="1" />
-            <line x1={80} y1={200} x2={140} y2={40} stroke="#2a231c" strokeWidth="2" opacity="0.3" />
-            <line x1={200} y1={180} x2={165} y2={50} stroke="#1f1a16" strokeWidth="2.5" opacity="0.25" />
-            <line x1={90} y1={280} x2={110} y2={260} stroke="#1f1a16" strokeWidth="1.5" opacity="0.15" />
-            <line x1={180} y1={300} x2={200} y2={275} stroke="#1f1a16" strokeWidth="1.5" opacity="0.12" />
-            <line x1={120} y1={340} x2={140} y2={320} stroke="#1f1a16" strokeWidth="1" opacity="0.1" />
-            <polygon points="150,12 112,80 105,75 95,85 88,78 80,90 72,85 60,105 240,105 228,85 220,90 212,78 205,85 195,75 188,80" fill="url(#volcSnow)" opacity="0.92" />
+            {/* Main cone: irregular silhouette (slightly wavy edges, not a perfect triangle) */}
+            <path d="M150,12 L138,55 L115,120 L75,200 L45,280 L18,365 L12,390 L35,390 L65,392 L100,390 L135,391 L165,390 L200,391 L235,390 L268,392 L288,390 L282,365 L255,280 L225,200 L185,120 L162,55 Z" fill="url(#volcCone)" stroke="#252019" strokeWidth="1.5" />
+            <path d="M150,12 L138,55 L115,120 L75,200 L45,280 L18,365 L12,390 L35,390 L65,392 L100,390 L135,391 L165,390 L200,391 L235,390 L268,392 L288,390 L282,365 L255,280 L225,200 L185,120 L162,55 Z" fill="url(#volcConeSide)" opacity="0.85" />
+            {/* Rock strata / horizontal bands (subtle) */}
+            <path d="M120,180 L180,180 L240,220 L260,260 L40,260 L60,220 Z" fill="#2a231c" opacity="0.12" />
+            <path d="M95,260 L205,260 L235,300 L65,300 Z" fill="#1f1a16" opacity="0.14" />
+            <path d="M70,320 L230,320 L250,355 L50,355 Z" fill="#1a1714" opacity="0.16" />
+            {/* Erosion / lava flow ridges (darker lines running down) */}
+            <path d="M130,50 Q125,120 115,200" stroke="#1f1a16" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.5" />
+            <path d="M165,45 Q172,110 185,190" stroke="#252019" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.45" />
+            <path d="M110,90 Q95,180 75,270" stroke="#1a1714" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.4" />
+            <path d="M192,95 Q208,175 228,265" stroke="#1f1a16" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.4" />
+            <path d="M88,240 L72,320" stroke="#252019" strokeWidth="1.5" fill="none" opacity="0.35" />
+            <path d="M212,238 L228,318" stroke="#252019" strokeWidth="1.5" fill="none" opacity="0.35" />
+            {/* Fine rock texture / cracks */}
+            <line x1={98} y1={140} x2={92} y2={165} stroke="#1f1a16" strokeWidth="1" opacity="0.3" />
+            <line x1={155} y1={100} x2={148} y2={130} stroke="#252019" strokeWidth="0.8" opacity="0.25" />
+            <line x1={200} y1={135} x2={208} y2={160} stroke="#1f1a16" strokeWidth="1" opacity="0.3" />
+            <line x1={65} y1={230} x2={58} y2={255} stroke="#1a1714" strokeWidth="0.8" opacity="0.3" />
+            <line x1={235} y1={228} x2={242} y2={252} stroke="#1a1714" strokeWidth="0.8" opacity="0.3" />
+            <line x1={118} y1={290} x2={108} y2={315} stroke="#252019" strokeWidth="0.6" opacity="0.25" />
+            <line x1={182} y1={288} x2={192} y2={312} stroke="#252019" strokeWidth="0.6" opacity="0.25" />
+            <line x1={145} y1={340} x2={155} y2={360} stroke="#1f1a16" strokeWidth="0.6" opacity="0.2" />
+            <polygon points="150,12 133,60 126,80 119,100 181,100 174,80 167,60 150,12" fill="url(#volcSnow)" opacity="0.92" />
             <ellipse cx={150} cy={22} rx={28} ry={12} fill="#1a1714" stroke="#2a231c" strokeWidth="1.5" />
             <ellipse cx={150} cy={20} rx={22} ry={9} fill="#ff6b1a" opacity="0.4" filter="url(#lavaGlow)" />
             <ellipse cx={150} cy={20} rx={16} ry={7} fill="url(#volcLava)" className="volcano-glow" />
             <path d="M142,28 Q140,60 138,90" stroke="#dc4a1a" strokeWidth="2" fill="none" strokeDasharray="4 6" className="lava-drip" />
             <path d="M158,28 Q162,55 165,80" stroke="#dc4a1a" strokeWidth="1.5" fill="none" strokeDasharray="3 5" className="lava-drip-delay" />
+            <path d="M150,26 Q148,70 142,110" stroke="#dc4a1a" strokeWidth="1.2" fill="none" opacity="0.6" strokeDasharray="3 4" className="lava-drip" style={{ animationDelay: '0.8s' }} />
           </svg>
         </div>
       )}
