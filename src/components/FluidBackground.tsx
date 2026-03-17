@@ -48,18 +48,23 @@ export default function FluidBackground() {
           __FLUID_SCROLL_SPLAT?: (deltaY: number, x?: number, y?: number) => void;
         }).__FLUID_SCROLL_SPLAT;
         if (typeof scrollSplat === 'function') {
-          const main = document.getElementById('main');
+          const readingBlock = document.getElementById('reading-block');
           const w = window.innerWidth;
           const h = window.innerHeight;
-          if (main && w > 0 && h > 0) {
-            const rect = main.getBoundingClientRect();
+          if (readingBlock && w > 0 && h > 0) {
+            const rect = readingBlock.getBoundingClientRect();
             const xCenter = (rect.left + rect.width / 2) / w;
+            const xLeft = rect.left / w;
+            const xRight = rect.right / w;
+            const yCenterFluid = 1 - (rect.top + rect.height / 2) / h;
             const scrollDown = accumulatedDeltaY > 0;
             const yLeading =
               scrollDown
                 ? 1 - rect.top / h
                 : 1 - (rect.top + rect.height) / h;
             scrollSplat(accumulatedDeltaY, xCenter, yLeading);
+            scrollSplat(accumulatedDeltaY, xLeft, yCenterFluid);
+            scrollSplat(accumulatedDeltaY, xRight, yCenterFluid);
           } else {
             scrollSplat(accumulatedDeltaY);
           }

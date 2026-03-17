@@ -104,7 +104,7 @@ function pointerPrototype () {
 
 let pointers = [];
 let splatStack = [];
-let pendingScroll = null;
+let scrollSplatQueue = [];
 const SCROLL_SPLAT_STRENGTH = 380;
 const SCROLL_SPLAT_MIN = 200;
 pointers.push(new pointerPrototype());
@@ -1237,13 +1237,13 @@ function applyInputs () {
         }
     });
 
-    if (pendingScroll !== null) {
-        const d = pendingScroll.deltaY;
+    while (scrollSplatQueue.length > 0) {
+        const p = scrollSplatQueue.shift();
+        const d = p.deltaY;
         const dy = Math.sign(d) * Math.min(SCROLL_SPLAT_STRENGTH, SCROLL_SPLAT_MIN + 0.2 * Math.abs(d));
-        const x = pendingScroll.x != null ? pendingScroll.x : 0.5;
-        const y = pendingScroll.y != null ? pendingScroll.y : 0.5;
+        const x = p.x != null ? p.x : 0.5;
+        const y = p.y != null ? p.y : 0.5;
         splat(x, y, 0, dy, generateColor());
-        pendingScroll = null;
     }
 }
 
@@ -1485,7 +1485,7 @@ if (typeof window !== 'undefined') {
         splatStack.push(parseInt(Math.random() * 20, 10) + 5);
     };
     window.__FLUID_SCROLL_SPLAT = function (deltaY, x, y) {
-        pendingScroll = { deltaY: deltaY, x: x ?? 0.5, y: y ?? 0.5 };
+        scrollSplatQueue.push({ deltaY: deltaY, x: x ?? 0.5, y: y ?? 0.5 });
     };
 }
 

@@ -43,7 +43,7 @@ export default function Home() {
       </a>
       <div id="main" className="relative z-[1] min-h-screen pointer-events-none" role="main">
         <div className="pointer-events-auto max-w-2xl mx-auto px-6 py-12 sm:py-16 md:py-20">
-          <div className="rounded-2xl bg-black/60 backdrop-blur-sm border border-white/10 p-6 sm:p-8 md:p-10 shadow-2xl">
+          <div id="reading-block" className="rounded-2xl bg-black/60 backdrop-blur-sm border border-white/10 p-6 sm:p-8 md:p-10 shadow-2xl">
             <h1 className="text-3xl sm:text-4xl font-semibold mb-2 text-white" style={{ textShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
               Hi 👋 I&apos;m Daniel.
             </h1>
