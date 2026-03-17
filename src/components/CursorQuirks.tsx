@@ -24,6 +24,7 @@ export default function CursorQuirks() {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const [follow, setFollow] = useState({ x: 0, y: 0 });
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [hasHover, setHasHover] = useState(false); // only show follow-dots after we confirm hover (avoids trail on touch)
   const [peekerUnlocked, setPeekerUnlocked] = useState(false);
   const followRef = useRef({ x: 0, y: 0 });
 
@@ -36,6 +37,14 @@ export default function CursorQuirks() {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     setReducedMotion(mq.matches);
     const handler = () => setReducedMotion(mq.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: hover)');
+    setHasHover(mq.matches);
+    const handler = () => setHasHover(mq.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
@@ -63,7 +72,7 @@ export default function CursorQuirks() {
 
   return (
     <>
-      <FollowDots x={follow.x} y={follow.y} />
+      {hasHover && <FollowDots x={follow.x} y={follow.y} />}
       <RunAwayElements mouseX={mouse.x} mouseY={mouse.y} />
       {peekerUnlocked && <Peeker mouseX={mouse.x} mouseY={mouse.y} />}
     </>
