@@ -802,12 +802,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
               {/* Stem + handlebars */}
               <line x1={HT.x} y1={HT.y} x2={HT.x + 6} y2={HT.y - 3} stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" />
               <line x1={HT.x + 3} y1={HT.y - 5} x2={HT.x + 10} y2={HT.y - 2} stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" />
-              {/* Rear rack */}
-              <g stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round">
-                <line x1={RD.x + 6} y1={SC.y + 8} x2={SC.x - 2} y2={SC.y + 8} />
-                <line x1={RD.x + 6} y1={SC.y + 8} x2={RD.x + 2} y2={BB.y - 6} />
-                <line x1={SC.x - 2} y1={SC.y + 8} x2={BB.x - 4} y2={BB.y - 6} />
-              </g>
+              {/* (rear rack removed -- peeker rides on saddle, not as passenger) */}
               {/* Cranks at BB */}
               <g transform={`rotate(${crankAngle} ${BB.x} ${BB.y})`}>
                 <line x1={BB.x} y1={BB.y} x2={BB.x} y2={BB.y - crankLen} stroke="rgba(255,255,255,0.35)" strokeWidth="2" />
@@ -815,22 +810,25 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
                 <circle cx={BB.x} cy={BB.y - crankLen} r={2.5} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
                 <circle cx={BB.x} cy={BB.y + crankLen} r={2.5} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
               </g>
-              {/* Rider legs: IK from hip to pedals, styled like peeker (dark fill, light border) */}
-              {/* Border layer (wider, drawn first) */}
-              <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke="rgba(255,255,255,0.1)" strokeWidth="7" strokeLinecap="round" />
-              <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke="rgba(255,255,255,0.1)" strokeWidth="7" strokeLinecap="round" />
-              <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke="rgba(255,255,255,0.1)" strokeWidth="7" strokeLinecap="round" />
-              <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke="rgba(255,255,255,0.1)" strokeWidth="7" strokeLinecap="round" />
-              {/* Fill layer (narrower, drawn on top) */}
-              <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke="rgba(0,0,0,0.8)" strokeWidth="5" strokeLinecap="round" />
-              <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke="rgba(0,0,0,0.8)" strokeWidth="5" strokeLinecap="round" />
-              <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke="rgba(0,0,0,0.8)" strokeWidth="5" strokeLinecap="round" />
-              <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke="rgba(0,0,0,0.8)" strokeWidth="5" strokeLinecap="round" />
+              {/* Rider legs: IK from hip to pedals, thick like peeker's actual legs */}
+              {/* Border layer */}
+              <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke="rgba(255,255,255,0.1)" strokeWidth="10" strokeLinecap="round" />
+              <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke="rgba(255,255,255,0.1)" strokeWidth="10" strokeLinecap="round" />
+              <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke="rgba(255,255,255,0.1)" strokeWidth="10" strokeLinecap="round" />
+              <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke="rgba(255,255,255,0.1)" strokeWidth="10" strokeLinecap="round" />
+              {/* Fill layer */}
+              <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke="rgba(0,0,0,0.8)" strokeWidth="8" strokeLinecap="round" />
+              <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke="rgba(0,0,0,0.8)" strokeWidth="8" strokeLinecap="round" />
+              <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke="rgba(0,0,0,0.8)" strokeWidth="8" strokeLinecap="round" />
+              <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke="rgba(0,0,0,0.8)" strokeWidth="8" strokeLinecap="round" />
+              {/* Knee joints */}
+              <circle cx={knee1.x} cy={knee1.y} r={5} fill="rgba(0,0,0,0.8)" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+              <circle cx={knee2.x} cy={knee2.y} r={5} fill="rgba(0,0,0,0.8)" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
             </svg>
             {/* Peeker (the actual div-based character, same as when running) sitting on the saddle */}
             <div className="absolute flex flex-col items-center" style={{
-              left: SC.x * (280 / 160) - PEEKER_HEAD_SIZE / 2,
-              bottom: (80 - SC.y) * (140 / 80) + 10,
+              left: hipX * (280 / 160) - PEEKER_HEAD_SIZE / 2,
+              bottom: (80 - hipY) * (140 / 80),
             }}>
               <div className="absolute flex gap-12" style={{ bottom: PEEKER_HEAD_SIZE + 24, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
                 <div className="h-8 w-3 rounded-full border border-white/10 bg-black/80 origin-bottom" style={{ transform: 'rotate(-30deg)' }} />
