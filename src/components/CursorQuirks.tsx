@@ -807,20 +807,21 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
                   <line key={d} x1={FD.x} y1={FD.y} x2={FD.x + (WHEEL_R - 2) * Math.cos((d * Math.PI) / 180)} y2={FD.y + (WHEEL_R - 2) * Math.sin((d * Math.PI) / 180)} stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
                 ))}
               </g>
-              {/* Main triangle */}
+              {/* Main diamond: top tube, down tube (BB up to handlebars), seat tube */}
               <g stroke={fs} strokeWidth="3.5" strokeLinecap="round">
                 <line x1={SC.x} y1={SC.y} x2={HT.x} y2={HT.y} />
-                <line x1={HT.x} y1={HT.y} x2={HB.x} y2={HB.y} />
-                <line x1={HB.x} y1={HB.y} x2={BB.x} y2={BB.y} />
+                <line x1={HT.x} y1={HT.y} x2={BB.x} y2={BB.y} />
                 <line x1={BB.x} y1={BB.y} x2={SC.x} y2={SC.y} />
               </g>
+              {/* Head tube: handlebars down to fork crown */}
+              <line x1={HT.x} y1={HT.y} x2={HB.x} y2={HB.y} stroke={fs} strokeWidth="3" strokeLinecap="round" />
+              {/* Fork: from crown to front wheel (the 4th side) */}
+              <line x1={HB.x} y1={HB.y} x2={FD.x} y2={FD.y} stroke={fs} strokeWidth="3" strokeLinecap="round" />
               {/* Rear triangle */}
               <g stroke={fs} strokeWidth="2.5" strokeLinecap="round">
                 <line x1={SC.x} y1={SC.y} x2={RD.x} y2={RD.y} />
                 <line x1={BB.x} y1={BB.y} x2={RD.x} y2={RD.y} />
               </g>
-              {/* Fork */}
-              <line x1={HB.x} y1={HB.y} x2={FD.x} y2={FD.y} stroke={fs} strokeWidth="3" strokeLinecap="round" />
               {/* Seat post + saddle */}
               <line x1={SC.x} y1={SC.y} x2={SC.x - 1} y2={SC.y - 5} stroke={fs} strokeWidth="2" strokeLinecap="round" />
               <ellipse cx={SC.x - 1} cy={SC.y - 7} rx={7} ry={2.5} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" />
