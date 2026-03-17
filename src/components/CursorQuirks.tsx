@@ -813,10 +813,8 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
                 <line x1={HT.x} y1={HT.y} x2={BB.x} y2={BB.y} />
                 <line x1={BB.x} y1={BB.y} x2={SC.x} y2={SC.y} />
               </g>
-              {/* Head tube: handlebars down to fork crown */}
-              <line x1={HT.x} y1={HT.y} x2={HB.x} y2={HB.y} stroke={fs} strokeWidth="3" strokeLinecap="round" />
-              {/* Fork: from crown to front wheel (the 4th side) */}
-              <line x1={HB.x} y1={HB.y} x2={FD.x} y2={FD.y} stroke={fs} strokeWidth="3" strokeLinecap="round" />
+              {/* Fork: single line from handlebars to front wheel */}
+              <line x1={HT.x} y1={HT.y} x2={FD.x} y2={FD.y} stroke={fs} strokeWidth="3" strokeLinecap="round" />
               {/* Rear triangle */}
               <g stroke={fs} strokeWidth="2.5" strokeLinecap="round">
                 <line x1={SC.x} y1={SC.y} x2={RD.x} y2={RD.y} />
