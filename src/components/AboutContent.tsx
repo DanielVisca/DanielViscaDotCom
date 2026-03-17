@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import posthog from 'posthog-js';
 
 const TOOLTIP_ADVANCE_COOLDOWN_MS = 600;
 
@@ -64,7 +65,9 @@ export default function AboutContent({ content }: { content: string }) {
     >
       <ReactMarkdown
         components={{
-          a: ({ href, children, ...props }) => (
+          a: ({ href, children, ...props }) => {
+            const isBuckAndBoo = href?.includes('buckandboo.com');
+            return (
             <span className="group/link relative inline-block" onMouseEnter={cycleTooltip}>
               <a
                 href={href}
@@ -73,6 +76,11 @@ export default function AboutContent({ content }: { content: string }) {
                 {...(href?.startsWith('http') || href === '/resume.pdf'
                   ? { target: '_blank', rel: 'noopener noreferrer' }
                   : {})}
+                onClick={() => {
+                  if (isBuckAndBoo && typeof posthog !== 'undefined' && posthog.capture) {
+                    posthog.capture('buck_and_boo_clicked');
+                  }
+                }}
               >
                 {children}
               </a>
@@ -83,7 +91,8 @@ export default function AboutContent({ content }: { content: string }) {
                 {LINK_TOOLTIPS[tooltipIndex]}
               </span>
             </span>
-          ),
+            );
+          },
         }}
       >
         {text}
