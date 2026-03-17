@@ -1,13 +1,17 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import posthog from 'posthog-js';
 
 const FLUID_INTERACTION_THROTTLE_MS = 5000;
+const FLUID_HINT_DELAY_MS = 65000;
+const FLUID_HINT_DURATION_MS = 2200;
 
 export default function FluidBackground() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lastCapturedRef = useRef<number>(0);
+  const hasInteractedRef = useRef(false);
+  const [hint, setHint] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     (window as unknown as { __FLUID_EMBED__?: boolean }).__FLUID_EMBED__ = true;
@@ -32,7 +36,9 @@ export default function FluidBackground() {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const onPointer = () => {
+    const onPointer = (e: Event) => {
+      if (!e.isTrusted) return;
+      hasInteractedRef.current = true;
       const now = Date.now();
       if (now - lastCapturedRef.current >= FLUID_INTERACTION_THROTTLE_MS) {
         lastCapturedRef.current = now;
@@ -53,6 +59,51 @@ export default function FluidBackground() {
     };
   }, []);
 
+  const hintCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (hasInteractedRef.current) return;
+      const canvas = document.getElementById('fluid-canvas') as HTMLCanvasElement | null;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      setHint({ x: centerX, y: centerY });
+
+      const dispatch = (type: string, clientX: number, clientY: number, target: EventTarget) => {
+        const e = new MouseEvent(type, {
+          bubbles: true,
+          clientX,
+          clientY,
+          button: 0,
+          buttons: type === 'mouseup' ? 0 : 1,
+        });
+        target.dispatchEvent(e);
+      };
+
+      const dragDeltaX = 60;
+      const dragDeltaY = 40;
+      dispatch('mousedown', centerX, centerY, canvas);
+      const t1 = setTimeout(() => dispatch('mousemove', centerX + dragDeltaX / 2, centerY + dragDeltaY / 2, canvas), 80);
+      const t2 = setTimeout(() => dispatch('mousemove', centerX + dragDeltaX, centerY + dragDeltaY, canvas), 200);
+      const t3 = setTimeout(() => dispatch('mouseup', centerX + dragDeltaX, centerY + dragDeltaY, window), 320);
+      const t4 = setTimeout(() => setHint(null), FLUID_HINT_DURATION_MS);
+
+      hintCleanupRef.current = () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        clearTimeout(t4);
+      };
+    }, FLUID_HINT_DELAY_MS);
+    return () => {
+      clearTimeout(t);
+      hintCleanupRef.current?.();
+      hintCleanupRef.current = null;
+    };
+  }, []);
+
   return (
     <div
       ref={containerRef}
@@ -64,6 +115,28 @@ export default function FluidBackground() {
         className="block w-full h-full"
         style={{ width: '100%', height: '100%', display: 'block' }}
       />
+      {hint && (
+        <>
+          <style>{`
+            @keyframes fluid-hint-pulse {
+              0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+              50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.9; }
+            }
+          `}</style>
+          <div
+            className="pointer-events-none absolute z-[1] rounded-full bg-white/25"
+            style={{
+              width: 44,
+              height: 44,
+              left: hint.x,
+              top: hint.y,
+              transform: 'translate(-50%, -50%)',
+              animation: 'fluid-hint-pulse 0.8s ease-in-out 3',
+            }}
+            aria-hidden
+          />
+        </>
+      )}
     </div>
   );
 }
