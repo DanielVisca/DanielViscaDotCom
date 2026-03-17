@@ -1470,8 +1470,7 @@ function correctRadius (radius) {
 
 if (typeof window !== 'undefined') {
     window.__FLUID_TRIGGER_BURST = function () {
-        for (var i = 0; i < 8; i++)
-            splatStack.push(parseInt(Math.random() * 15, 10) + 5);
+        splatStack.push(parseInt(Math.random() * 20, 10) + 5);
     };
 }
 
