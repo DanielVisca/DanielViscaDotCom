@@ -105,8 +105,8 @@ function pointerPrototype () {
 let pointers = [];
 let splatStack = [];
 let scrollSplatQueue = [];
-const SCROLL_SPLAT_STRENGTH = 380;
-const SCROLL_SPLAT_MIN = 200;
+const SCROLL_SPLAT_STRENGTH = 160;
+const SCROLL_SPLAT_MIN = 60;
 pointers.push(new pointerPrototype());
 
 const { gl, ext } = getWebGLContext(canvas);
@@ -1240,7 +1240,7 @@ function applyInputs () {
     while (scrollSplatQueue.length > 0) {
         const p = scrollSplatQueue.shift();
         const d = p.deltaY;
-        const dy = Math.sign(d) * Math.min(SCROLL_SPLAT_STRENGTH, SCROLL_SPLAT_MIN + 0.2 * Math.abs(d));
+        const dy = Math.sign(d) * Math.min(SCROLL_SPLAT_STRENGTH, SCROLL_SPLAT_MIN + 0.08 * Math.abs(d));
         const x = p.x != null ? p.x : 0.5;
         const y = p.y != null ? p.y : 0.5;
         splat(x, y, 0, dy, generateColor());
