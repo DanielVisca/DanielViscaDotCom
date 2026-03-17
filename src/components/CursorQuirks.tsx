@@ -432,6 +432,8 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
       climbProgressRef.current = progress;
       setClimbProgress(progress);
       if (linear >= 1) {
+        climbProgressRef.current = 1;
+        setClimbProgress(1); // set before phase change so no position jump when entering cheering
         queueMicrotask(() => setPhase('cheering'));
         return;
       }
@@ -444,6 +446,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
   // Adventure: cheering -> after CHEER_DURATION_MS -> climbing_down
   useEffect(() => {
     if (phase !== 'cheering') return;
+    climbProgressRef.current = 1;
     setClimbProgress(1);
     const t = setTimeout(() => setPhase('climbing_down'), CHEER_DURATION_MS);
     return () => clearTimeout(t);
@@ -980,14 +983,19 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
       {(phase === 'climbing' || phase === 'cheering' || phase === 'climbing_down') && (() => {
         const volcanoHeightPx = Math.max(240, windowSize.h * 0.58);
         const climbBottom = climbProgress * volcanoHeightPx * 0.97;
-        const summitOffset = phase === 'cheering' ? 14 : 0; // stand on crater rim when summited
+        // Same summit height for cheering and start of descent so no vertical teleport; taper offset during descent
+        const summitOffset =
+          phase === 'cheering'
+            ? 14
+            : phase === 'climbing_down'
+              ? 14 * Math.min(1, climbProgress / 0.96)
+              : 0;
         const isDown = phase === 'climbing_down';
         const isClimbing = phase === 'climbing' || isDown;
         const nearTop = isClimbing && climbProgress > 0.82;
         const containerTransform = [
           'translateX(-50%)',
           isDown ? 'scaleX(-1)' : '',
-          nearTop ? 'rotate(-2deg)' : '',
         ].filter(Boolean).join(' ');
         return (
           <div
