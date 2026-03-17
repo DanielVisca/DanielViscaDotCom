@@ -188,13 +188,13 @@ export default function FluidBackground() {
       className="fixed inset-0 z-0 w-full h-full"
       aria-hidden
     >
-      <div key={remountKey} className="absolute inset-0 w-full h-full">
-        <canvas
-          id="fluid-canvas"
-          className="block w-full h-full"
-          style={{ width: '100%', height: '100%', display: 'block' }}
-        />
-        {hint && (
+      <canvas
+        key={remountKey}
+        id="fluid-canvas"
+        className="block w-full h-full"
+        style={{ width: '100%', height: '100%', display: 'block' }}
+      />
+      {hint && (
         <>
           <style>{`
             @keyframes fluid-hint-pulse {
@@ -216,7 +216,6 @@ export default function FluidBackground() {
           />
         </>
       )}
-      </div>
     </div>
   );
 }
