@@ -42,14 +42,21 @@ export default function PhotoCollage({ items }: { items: PhotoItem[] }) {
     setLightboxIndex((i) => (i === null ? null : i === items.length - 1 ? 0 : i + 1));
   }, [items.length]);
 
+  const closeLightbox = useCallback(() => {
+    if (lightboxIndex !== null && typeof posthog !== 'undefined' && posthog.capture) {
+      posthog.capture('lightbox_closed', { caption: items[lightboxIndex].caption });
+    }
+    setLightboxIndex(null);
+  }, [lightboxIndex, items]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (lightboxIndex === null) return;
-      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'Escape') closeLightbox();
       if (e.key === 'ArrowLeft') goPrev();
       if (e.key === 'ArrowRight') goNext();
     },
-    [lightboxIndex, goPrev, goNext]
+    [lightboxIndex, goPrev, goNext, closeLightbox]
   );
 
   useEffect(() => {
@@ -104,13 +111,13 @@ export default function PhotoCollage({ items }: { items: PhotoItem[] }) {
           role="dialog"
           aria-modal="true"
           aria-label={`Image: ${lightbox.caption}`}
-          onClick={() => setLightboxIndex(null)}
+          onClick={closeLightbox}
         >
           <button
             ref={closeRef}
             type="button"
             className="absolute top-4 right-4 z-10 text-white/80 hover:text-white text-2xl leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded"
-            onClick={() => setLightboxIndex(null)}
+            onClick={(e) => { e.stopPropagation(); closeLightbox(); }}
             aria-label="Close"
           >
             &times;

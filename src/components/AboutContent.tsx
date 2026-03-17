@@ -13,6 +13,25 @@ const LINK_TOOLTIPS = [
   '👀👀👀',
 ];
 
+function getLinkLabel(href: string | undefined): string | null {
+  if (!href) return null;
+  if (href.includes('buckandboo.com')) return 'buck_and_boo';
+  if (href.includes('github.com')) return 'github';
+  if (href.includes('linkedin.com')) return 'linkedin';
+  if (href.includes('goodreads.com')) return 'reading';
+  if (href.includes('medium.com')) return 'writing';
+  if (href.includes('strava.com')) return 'running';
+  if (href.includes('mail.google.com') || href.startsWith('mailto:')) return 'email';
+  if (href === '/resume.pdf') return 'resume';
+  if (href.includes('outfitterhq.ca')) return 'outfitterhq';
+  if (href.includes('posthog.com')) return 'posthog';
+  if (href.includes('microsoft.com')) return 'microsoft';
+  if (href.includes('muddygoosepottery.com')) return 'muddy_goose';
+  if (href.includes('google.com/maps')) return 'bike_route';
+  if (href.startsWith('http') || href === '/resume.pdf') return 'other';
+  return null;
+}
+
 function prepareAboutContent(raw: string): string {
   const lines = raw.trimEnd().split('\n');
   const contactLine = '[email] · [github] · [linkedin] · [writing]';
@@ -69,7 +88,7 @@ export default function AboutContent({ content }: { content: string }) {
       <ReactMarkdown
         components={{
           a: ({ href, children, ...props }) => {
-            const isBuckAndBoo = href?.includes('buckandboo.com');
+            const linkLabel = getLinkLabel(href);
             return (
             <span className="group/link relative inline-block" onMouseEnter={cycleTooltip}>
               <a
@@ -80,8 +99,8 @@ export default function AboutContent({ content }: { content: string }) {
                   ? { target: '_blank', rel: 'noopener noreferrer' }
                   : {})}
                 onClick={() => {
-                  if (isBuckAndBoo && typeof posthog !== 'undefined' && posthog.capture) {
-                    posthog.capture('buck_and_boo_clicked');
+                  if (linkLabel && typeof posthog !== 'undefined' && posthog.capture) {
+                    posthog.capture('about_link_clicked', { link: linkLabel });
                   }
                 }}
               >

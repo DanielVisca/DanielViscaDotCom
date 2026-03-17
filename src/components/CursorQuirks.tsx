@@ -529,7 +529,13 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
       setPhase('pulling_up');
     }
     if (phase === 'standing_with_bubble') {
-      if (Math.random() < ADVENTURE_CHANCE) {
+      const goAdventure = Math.random() < ADVENTURE_CHANCE;
+      if (typeof posthog !== 'undefined' && posthog.capture) {
+        posthog.capture('long_visit_standup_dismissed', {
+          outcome: goAdventure ? 'adventure' : 'run_off',
+        });
+      }
+      if (goAdventure) {
         setPhase('hop_on_bike');
       } else {
         setPhase('running_off');
