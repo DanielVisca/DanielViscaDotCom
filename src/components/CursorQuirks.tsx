@@ -39,6 +39,7 @@ const ADVENTURE_CHANCE = 0.2;
 const HOP_ON_BIKE_DURATION_MS = 2000;
 const ADVENTURE_BIKE_PATH_DURATION_MS = 10000;
 const VOLCANO_TARGET_RATIO = 0.65;
+const BIKE_PARK_OFFSET_RATIO = 0.08;
 const CLIMB_DURATION_MS = 6000;
 const CHEER_DURATION_MS = 3000;
 const CLIMB_DOWN_DURATION_MS = 4000;
@@ -163,6 +164,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
   const [volcanoScale, setVolcanoScale] = useState(0);
   const [bikeParkedX, setBikeParkedX] = useState(0);
   const [climbProgress, setClimbProgress] = useState(0);
+  const [dismountWalkProgress, setDismountWalkProgress] = useState(0);
 
   useEffect(() => {
     const updateSize = () => setWindowSize({ w: window.innerWidth, h: window.innerHeight });
@@ -216,8 +218,8 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
   const headCenterY =
     phase === 'peeking'
       ? windowSize.h - PEEK_VISIBLE / 2
-      : isAdventureClimb
-        ? windowSize.h - climbProgress * Math.max(240, windowSize.h * 0.58) * 0.85 - 44
+      :     isAdventureClimb
+        ? windowSize.h - climbProgress * Math.max(240, windowSize.h * 0.58) * 0.97 - 44
         : baseStandingY;
   const headLeft = headCenterX - PEEKER_HEAD_SIZE / 2;
   const headTop = headCenterY - PEEKER_HEAD_SIZE / 2;
@@ -343,7 +345,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
   useEffect(() => {
     if (phase !== 'biking_to_volcano' || windowSize.w === 0 || windowSize.h === 0) return;
     const startX = -0.35 * windowSize.w;
-    const endX = (VOLCANO_TARGET_RATIO - 0.5) * windowSize.w;
+    const endX = (VOLCANO_TARGET_RATIO - 0.5 - BIKE_PARK_OFFSET_RATIO) * windowSize.w;
     const h = windowSize.h;
     bikePrevXRef.current = startX;
     let raf = 0;
@@ -372,15 +374,37 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
     return () => cancelAnimationFrame(raf);
   }, [phase, windowSize.w, windowSize.h]);
 
-  // Adventure: dismounting -> park bike, hop off, then climb
+  // Adventure: dismounting -> park bike, hop off, walk to volcano base, then climb
+  const dismountStartXRef = useRef(0);
   useEffect(() => {
-    if (phase !== 'dismounting') return;
+    if (phase !== 'dismounting' || windowSize.w === 0) return;
+    dismountStartXRef.current = characterX;
     setBikeParkedX(characterX);
     setClimbProgress(0);
+    setDismountWalkProgress(0);
     climbProgressRef.current = 0;
-    const t = setTimeout(() => setPhase('climbing'), DISMOUNT_DURATION_MS);
-    return () => clearTimeout(t);
-  }, [phase, characterX]);
+    const start = Date.now();
+    const volcanoCenterPx = (VOLCANO_TARGET_RATIO - 0.5) * windowSize.w;
+    let raf = 0;
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      if (elapsed >= DISMOUNT_DURATION_MS) {
+        setDismountWalkProgress(1);
+        setCharacterX(volcanoCenterPx);
+        queueMicrotask(() => setPhase('climbing'));
+        return;
+      }
+      const walkStartMs = 400;
+      const walkDurMs = DISMOUNT_DURATION_MS - walkStartMs;
+      const raw = elapsed <= walkStartMs ? 0 : Math.min(1, (elapsed - walkStartMs) / walkDurMs);
+      const eased = raw < 0.5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2;
+      setDismountWalkProgress(eased);
+      setCharacterX(dismountStartXRef.current + (volcanoCenterPx - dismountStartXRef.current) * eased);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [phase, windowSize.w]);
 
   // Adventure: climbing -> progress 0..1 over CLIMB_DURATION_MS -> cheering
   useEffect(() => {
@@ -735,6 +759,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         const lean = phase === 'biking_to_volcano' ? characterY * 0.04 : 0;
         const bikeY = phase === 'biking_to_volcano' ? characterY : 0;
         const bikeX = (phase === 'dismounting' || phase === 'remounting') ? bikeParkedX : characterX;
+        const riderOnBike = phase !== 'dismounting' || dismountWalkProgress <= 0.02;
         const crankAngle = bikeWheelRotation * CRANK_RATIO;
         const crankRad = (crankAngle * Math.PI) / 180;
         const crankLen = 10;
@@ -810,17 +835,22 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
                 <circle cx={BB.x} cy={BB.y - crankLen} r={2.5} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
                 <circle cx={BB.x} cy={BB.y + crankLen} r={2.5} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
               </g>
-              {/* Rider legs: IK from hip to pedals */}
-              <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke="rgba(255,255,255,0.1)" strokeWidth="13" strokeLinecap="round" />
-              <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke="rgba(255,255,255,0.1)" strokeWidth="13" strokeLinecap="round" />
-              <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke="rgba(255,255,255,0.1)" strokeWidth="13" strokeLinecap="round" />
-              <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke="rgba(255,255,255,0.1)" strokeWidth="13" strokeLinecap="round" />
-              <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke="rgba(0,0,0,0.8)" strokeWidth="11" strokeLinecap="round" />
-              <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke="rgba(0,0,0,0.8)" strokeWidth="11" strokeLinecap="round" />
-              <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke="rgba(0,0,0,0.8)" strokeWidth="11" strokeLinecap="round" />
-              <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke="rgba(0,0,0,0.8)" strokeWidth="11" strokeLinecap="round" />
+              {riderOnBike && (
+                <>
+                  {/* Rider legs: IK from hip to pedals */}
+                  <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke="rgba(255,255,255,0.1)" strokeWidth="13" strokeLinecap="round" />
+                  <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke="rgba(255,255,255,0.1)" strokeWidth="13" strokeLinecap="round" />
+                  <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke="rgba(255,255,255,0.1)" strokeWidth="13" strokeLinecap="round" />
+                  <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke="rgba(255,255,255,0.1)" strokeWidth="13" strokeLinecap="round" />
+                  <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke="rgba(0,0,0,0.8)" strokeWidth="11" strokeLinecap="round" />
+                  <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke="rgba(0,0,0,0.8)" strokeWidth="11" strokeLinecap="round" />
+                  <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke="rgba(0,0,0,0.8)" strokeWidth="11" strokeLinecap="round" />
+                  <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke="rgba(0,0,0,0.8)" strokeWidth="11" strokeLinecap="round" />
+                </>
+              )}
             </svg>
-            {/* Peeker (the actual div-based character, same as when running) sitting on the saddle */}
+            {riderOnBike && (
+            /* Peeker (the actual div-based character, same as when running) sitting on the saddle */
             <div className="absolute flex flex-col items-center" style={{
               left: hipX * (280 / 160) - PEEKER_HEAD_SIZE / 2,
               bottom: (80 - hipY) * (140 / 80),
@@ -837,14 +867,39 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
               </div>
               <div className="overflow-hidden rounded-b-2xl border border-t-0 border-white/10 bg-black/80" style={{ width: 56, height: 44, marginBottom: 0 }} />
             </div>
+            )}
           </div>
         );
       })()}
 
+      {/* Dismount walk: peeker walks from bike to volcano base */}
+      {phase === 'dismounting' && dismountWalkProgress > 0.02 && (
+        <div
+          className="pointer-events-none absolute flex flex-col items-center peeker-run-arm"
+          style={{
+            left: '50%',
+            bottom: 0,
+            transform: `translate(calc(-50% + ${characterX}px), 0)`,
+          }}
+        >
+          <div className="absolute flex gap-20" style={{ bottom: PEEKER_HEAD_SIZE + 40, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
+            <div className="h-10 w-4 rounded-full border border-white/10 bg-black/80 origin-bottom" />
+            <div className="h-10 w-4 rounded-full border border-white/10 bg-black/80 origin-bottom" />
+          </div>
+          <div
+            className="relative rounded-full border border-white/10 bg-black/80 shadow-[0_0_20px_rgba(34,211,238,0.15)]"
+            style={{ width: PEEKER_HEAD_SIZE, height: PEEKER_HEAD_SIZE, marginBottom: -4 }}
+          >
+            <PeekerEyes {...sharedEyeProps} />
+          </div>
+          <div className="overflow-hidden rounded-b-2xl border border-t-0 border-white/10 bg-black/80" style={{ width: 56, height: 44, marginBottom: 0 }} />
+        </div>
+      )}
+
       {/* Climbing / cheering / climbing_down: anchored to volcano position */}
       {(phase === 'climbing' || phase === 'cheering' || phase === 'climbing_down') && (() => {
         const volcanoHeightPx = Math.max(240, windowSize.h * 0.58);
-        const climbBottom = climbProgress * volcanoHeightPx * 0.85;
+        const climbBottom = climbProgress * volcanoHeightPx * 0.97;
         const isDown = phase === 'climbing_down';
         const isClimbing = phase === 'climbing' || isDown;
         return (
