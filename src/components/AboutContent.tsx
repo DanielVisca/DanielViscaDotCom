@@ -22,10 +22,15 @@ function prepareAboutContent(raw: string): string {
   const email = `https://mail.google.com/mail/?view=cm&fs=1&to=danielvisca96@gmail.com&su=${emailSubject}`;
   const contactWithLinks = `[email](${email}) · [github](${github}) · [linkedin](${linkedin}) · [medium](${medium}) · [resume](/resume.pdf)`;
 
+  const buckAndBoo = "Oh and while you're here — my mom is a graphic designer and makes awesome shirts. Go give her some love → [Buck & Boo](https://buckandboo.com/).";
+
   const out: string[] = [];
   let i = 0;
   while (i < lines.length) {
     if (lines[i].trim() === contactLine.trim()) {
+      out.push('');
+      out.push(buckAndBoo);
+      out.push('');
       out.push(contactWithLinks);
       i += 5;
       continue;
