@@ -12,17 +12,25 @@ const PEEKER_LERP = 0.08;
 const PUPIL_MAX_OFFSET = 4;
 const CURSOR_CLOSE_RADIUS = 80;
 
-type PeekerPhase = 'peeking' | 'pulling_up' | 'standing' | 'running_off';
+type PeekerPhase = 'peeking' | 'pulling_up' | 'standing' | 'running_off' | 'off_screen';
 const PULL_UP_DURATION_MS = 800;
 const STANDING_BEFORE_RUN_MS = 500;
 const RUN_SPEED = 6;
 const CHARACTER_WIDTH = 80;
+const OFF_SCREEN_DELAY_MS = 10000;
+const PEEKER_INITIAL_DELAY_MS = 8000;
 
 export default function CursorQuirks() {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const [follow, setFollow] = useState({ x: 0, y: 0 });
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [peekerUnlocked, setPeekerUnlocked] = useState(false);
   const followRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const t = setTimeout(() => setPeekerUnlocked(true), PEEKER_INITIAL_DELAY_MS);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -57,7 +65,7 @@ export default function CursorQuirks() {
     <>
       <FollowDots x={follow.x} y={follow.y} />
       <RunAwayElements mouseX={mouse.x} mouseY={mouse.y} />
-      <Peeker mouseX={mouse.x} mouseY={mouse.y} />
+      {peekerUnlocked && <Peeker mouseX={mouse.x} mouseY={mouse.y} />}
     </>
   );
 }
@@ -162,6 +170,12 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
   }, [phase, mouseX, windowSize.w]);
 
   useEffect(() => {
+    if (phase !== 'off_screen') return;
+    const t = setTimeout(() => setPhase('peeking'), OFF_SCREEN_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  useEffect(() => {
     if (phase !== 'running_off' || windowSize.w === 0) return;
     let raf = 0;
     const halfW = windowSize.w / 2 + CHARACTER_WIDTH;
@@ -169,11 +183,11 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
       setCharacterX((prev) => {
         const next = prev + RUN_SPEED * runDirectionRef.current;
         if (runDirectionRef.current > 0 && next > halfW) {
-          queueMicrotask(() => setPhase('peeking'));
+          queueMicrotask(() => setPhase('off_screen'));
           return 0;
         }
         if (runDirectionRef.current < 0 && next < -halfW) {
-          queueMicrotask(() => setPhase('peeking'));
+          queueMicrotask(() => setPhase('off_screen'));
           return 0;
         }
         return next;
