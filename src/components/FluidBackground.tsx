@@ -13,6 +13,20 @@ export default function FluidBackground() {
   const lastCapturedRef = useRef<number>(0);
   const hasInteractedRef = useRef(false);
   const [hint, setHint] = useState<{ x: number; y: number } | null>(null);
+  const [remountKey, setRemountKey] = useState(0);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      const win = window as unknown as { __FLUID_CONTEXT_LOST__?: boolean };
+      if (win.__FLUID_CONTEXT_LOST__) {
+        win.__FLUID_CONTEXT_LOST__ = false;
+        setRemountKey((k) => k + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
 
   useEffect(() => {
     (window as unknown as { __FLUID_EMBED__?: boolean }).__FLUID_EMBED__ = true;
@@ -23,7 +37,7 @@ export default function FluidBackground() {
     return () => {
       script.remove();
     };
-  }, []);
+  }, [remountKey]);
 
   useEffect(() => {
     const BURST_INTERVAL_MS = 45000;
@@ -174,12 +188,13 @@ export default function FluidBackground() {
       className="fixed inset-0 z-0 w-full h-full"
       aria-hidden
     >
-      <canvas
-        id="fluid-canvas"
-        className="block w-full h-full"
-        style={{ width: '100%', height: '100%', display: 'block' }}
-      />
-      {hint && (
+      <div key={remountKey} className="absolute inset-0 w-full h-full">
+        <canvas
+          id="fluid-canvas"
+          className="block w-full h-full"
+          style={{ width: '100%', height: '100%', display: 'block' }}
+        />
+        {hint && (
         <>
           <style>{`
             @keyframes fluid-hint-pulse {
@@ -201,6 +216,7 @@ export default function FluidBackground() {
           />
         </>
       )}
+      </div>
     </div>
   );
 }
