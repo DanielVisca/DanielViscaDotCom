@@ -185,7 +185,7 @@ export default function FluidBackground() {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-0 w-full h-full"
+      className="fixed inset-0 z-0 w-full h-dvh"
       aria-hidden
     >
       <div key={remountKey} className="absolute inset-0 w-full h-full">
