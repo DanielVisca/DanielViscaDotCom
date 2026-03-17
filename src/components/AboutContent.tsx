@@ -21,7 +21,9 @@ function prepareAboutContent(raw: string): string {
     out.push(lines[i]);
     i += 1;
   }
-  return out.join('\n');
+  let result = out.join('\n');
+  result = result.replace(/\*\*OutfitterHQ\*\*/, '**[OutfitterHQ](https://outfitterhq.ca/)**');
+  return result;
 }
 
 export default function AboutContent({ content }: { content: string }) {
