@@ -13,7 +13,7 @@ I've summited Rainier, Adams, Baker, Glacier Peak, St. Helens, Hood, and [a bunc
 
 I flew to Japan, found the cheapest used bike with a rack on it that I could buy as a non-resident (this was weirdly hard, all bikes need to be registered like cars), and [biked from Hiroshima to Fuji](https://www.google.com/maps/d/edit?mid=1rmE0NaiDilRwKi9sXKGW_b3FNKp7LpU&usp=sharing) (where I sold the bike to an Indian Restaurant). We took mountain routes and biked through rain in flip flops to save our shoes. Got headbutted by a bowing deer. Got surrounded by monkeys who decided we were in THEIR campsite. 10/10 would do again.
 
-I did a 10 day Vipassana silent meditation retreat in Sweden. It was one of the hardest things I've done and also the thing that made my cognitive science degree suddenly make sense. I finally got to experience all the things I'd only studied.
+I did a 10 day [Vipassana silent meditation retreat](https://www.dhamma.org/en/schedules/schsobhana) in Sweden. It was one of the hardest things I've done and also the thing that made my cognitive science degree suddenly make sense. I finally got to experience all the things I'd only studied.
 
 I worked at a party hostel (Grandio) in Budapest for a while. Bar crawls through ruin bars, party boats on the Danube, MC'ing open mic nights. I got on the wrong train once and ended up in the wrong country. I love people and I love how fast you can get to know someone when everyone's a little bit lost in the same place.
 

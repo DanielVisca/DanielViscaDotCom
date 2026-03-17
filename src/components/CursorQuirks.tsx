@@ -673,6 +673,20 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
           0%, 100% { opacity: 0.6; }
           50% { opacity: 1; }
         }
+        @keyframes lavaFlow {
+          0% { stroke-dashoffset: 0; opacity: 0.6; }
+          50% { stroke-dashoffset: -8; opacity: 0.9; }
+          100% { stroke-dashoffset: 0; opacity: 0.6; }
+        }
+        @keyframes cloudDrift {
+          0% { transform: translate(-50%, 0) translateX(0); opacity: 0.5; }
+          50% { transform: translate(-50%, 0) translateX(8%); opacity: 0.7; }
+          100% { transform: translate(-50%, 0) translateX(0); opacity: 0.5; }
+        }
+        @keyframes cloudDriftSlow {
+          0% { transform: translate(-50%, 0) translateX(5%); opacity: 0.4; }
+          100% { transform: translate(-50%, 0) translateX(-5%); opacity: 0.6; }
+        }
         .peeker-bike-bob { animation: bikeBob 0.4s ease-in-out infinite; }
         .passenger-leg-swing { animation: passengerLegSwing 2s ease-in-out infinite; }
         .climb-arm-left { animation: climbArmLeftReach 1.5s ease-in-out infinite; }
@@ -693,8 +707,10 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         .volcano-smoke { animation: volcanoSmoke 4s ease-in-out infinite; }
         .volcano-smoke-delay { animation: volcanoSmoke 5s ease-in-out 1.5s infinite; }
         .volcano-smoke-delay-2 { animation: volcanoSmoke 6s ease-in-out 3s infinite; }
-        .lava-drip { animation: lavaDrip 3s ease-in-out infinite; }
-        .lava-drip-delay { animation: lavaDrip 4s ease-in-out 1.5s infinite; }
+        .lava-drip { animation: lavaDrip 3s ease-in-out infinite, lavaFlow 2.5s ease-in-out infinite; }
+        .lava-drip-delay { animation: lavaDrip 4s ease-in-out 1.5s infinite, lavaFlow 3s ease-in-out 0.5s infinite; }
+        .volcano-cloud { animation: cloudDrift 12s ease-in-out infinite; }
+        .volcano-cloud-slow { animation: cloudDriftSlow 18s ease-in-out infinite; }
       `}</style>
 
       {phase === 'peeking' && (
@@ -733,6 +749,8 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
           <div className="volcano-smoke absolute left-1/2 rounded-full bg-gray-500/30 blur-xl" style={{ width: '45%', height: '16%', top: '-6%' }} />
           <div className="volcano-smoke-delay absolute left-1/2 rounded-full bg-gray-400/25 blur-2xl" style={{ width: '35%', height: '12%', top: '-3%' }} />
           <div className="volcano-smoke-delay-2 absolute left-1/2 rounded-full bg-gray-500/20 blur-xl" style={{ width: '28%', height: '10%', top: '-1%' }} />
+          <div className="volcano-cloud absolute left-1/2 rounded-full bg-white/20 blur-2xl" style={{ width: '50%', height: '14%', top: '-15%' }} />
+          <div className="volcano-cloud-slow absolute left-1/2 rounded-full bg-white/15 blur-xl" style={{ width: '38%', height: '10%', top: '-22%', left: '55%' }} />
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 400" preserveAspectRatio="none">
             <defs>
               <linearGradient id="volcCone" x1="0.3" y1="0" x2="0.7" y2="1">
@@ -742,8 +760,10 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
                 <stop offset="100%" stopColor="#3d352c" />
               </linearGradient>
               <linearGradient id="volcSnow" x1="0.5" y1="0" x2="0.5" y2="1">
-                <stop offset="0%" stopColor="#c8c8d0" />
-                <stop offset="100%" stopColor="#9a9aa8" />
+                <stop offset="0%" stopColor="#e8e8f0" />
+                <stop offset="35%" stopColor="#d0d0dc" />
+                <stop offset="70%" stopColor="#a8a8b8" />
+                <stop offset="100%" stopColor="#8a8a9a" />
               </linearGradient>
               <radialGradient id="volcLava" cx="0.5" cy="0.5" r="0.5">
                 <stop offset="0%" stopColor="#ff6b1a" />
@@ -759,12 +779,12 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
             <line x1={90} y1={280} x2={110} y2={260} stroke="#1f1a16" strokeWidth="1.5" opacity="0.15" />
             <line x1={180} y1={300} x2={200} y2={275} stroke="#1f1a16" strokeWidth="1.5" opacity="0.12" />
             <line x1={120} y1={340} x2={140} y2={320} stroke="#1f1a16" strokeWidth="1" opacity="0.1" />
-            <polygon points="150,12 112,80 105,75 95,85 88,78 80,90 72,85 60,105 240,105 228,85 220,90 212,78 205,85 195,75 188,80" fill="url(#volcSnow)" opacity="0.85" />
+            <polygon points="150,12 112,80 105,75 95,85 88,78 80,90 72,85 60,105 240,105 228,85 220,90 212,78 205,85 195,75 188,80" fill="url(#volcSnow)" opacity="0.92" />
             <ellipse cx={150} cy={22} rx={28} ry={12} fill="#1a1714" stroke="#2a231c" strokeWidth="1.5" />
             <ellipse cx={150} cy={20} rx={22} ry={9} fill="#ff6b1a" opacity="0.4" filter="url(#lavaGlow)" />
             <ellipse cx={150} cy={20} rx={16} ry={7} fill="url(#volcLava)" className="volcano-glow" />
-            <path d="M142,28 Q140,60 138,90" stroke="#dc4a1a" strokeWidth="2" fill="none" opacity="0.5" className="lava-drip" />
-            <path d="M158,28 Q162,55 165,80" stroke="#dc4a1a" strokeWidth="1.5" fill="none" opacity="0.4" className="lava-drip-delay" />
+            <path d="M142,28 Q140,60 138,90" stroke="#dc4a1a" strokeWidth="2" fill="none" strokeDasharray="4 6" className="lava-drip" />
+            <path d="M158,28 Q162,55 165,80" stroke="#dc4a1a" strokeWidth="1.5" fill="none" strokeDasharray="3 5" className="lava-drip-delay" />
           </svg>
         </div>
       )}
@@ -947,7 +967,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
                 </svg>
               </>
             )}
-            <div className="absolute flex gap-16" style={{ bottom: 44, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
+            <div className="absolute flex gap-12" style={{ bottom: 64, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
               <div className="relative" style={{ height: 40, width: 16 }}>
                 <div className={`h-10 w-4 rounded-full border border-white/10 bg-black/80 origin-bottom ${isClimbing ? 'climb-arm-left' : 'cheer-arm-left'}`}>
                   {phase === 'climbing' && (
