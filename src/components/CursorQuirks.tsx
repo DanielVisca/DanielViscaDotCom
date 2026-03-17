@@ -48,12 +48,17 @@ const ADVENTURE_BIKE_OFF_DURATION_MS = 5000;
 const ADVENTURE_BIKE_WIDTH = 200;
 const CRANK_RATIO = 0.3;
 
-const RD = { x: 28, y: 64 };
-const BB = { x: 68, y: 64 };
-const SC = { x: 60, y: 30 };
-const HT = { x: 118, y: 28 };
-const HB = { x: 118, y: 52 };
-const FD = { x: 138, y: 64 };
+// Bicycle joints traced from reference image proportions.
+// Wheels are large (r=18). BB sits above axle line. Head tube is short.
+// Fork drops nearly straight down from HB to FD.
+const WHEEL_R = 18;
+const AXLE_Y = 62;              // wheel centers
+const RD = { x: 24, y: AXLE_Y };   // rear axle
+const FD = { x: 118, y: AXLE_Y };  // front axle
+const BB = { x: 56, y: 54 };       // bottom bracket (above axle line, between wheels)
+const SC = { x: 48, y: 20 };       // seat cluster (top of seat tube)
+const HT = { x: 96, y: 16 };       // head tube top
+const HB = { x: 92, y: 38 };       // head tube bottom / fork crown
 
 export default function CursorQuirks() {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
@@ -153,7 +158,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
   const adventureBikeOffStartTimeRef = useRef(0);
   const [bikeWheelRotation, setBikeWheelRotation] = useState(0);
   const bikePrevXRef = useRef(0);
-  const BIKE_WHEEL_RADIUS_PX = 14;
+  const BIKE_WHEEL_RADIUS_PX = WHEEL_R;
   const BIKE_DEG_PER_PX = 360 / (2 * Math.PI * BIKE_WHEEL_RADIUS_PX);
   const [volcanoScale, setVolcanoScale] = useState(0);
   const [bikeParkedX, setBikeParkedX] = useState(0);
@@ -737,7 +742,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         const pedal1Y = BB.y + crankLen * Math.sin(crankRad);
         const pedal2X = BB.x + crankLen * Math.cos(crankRad + Math.PI);
         const pedal2Y = BB.y + crankLen * Math.sin(crankRad + Math.PI);
-        const hipX = 66; const hipY = 40;
+        const hipX = SC.x + 4; const hipY = SC.y + 6;
         const thighLen = 16; const shinLen = 16;
         const solveKnee = (hx: number, hy: number, px: number, py: number) => {
           const dx = px - hx; const dy = py - hy;
@@ -763,45 +768,52 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
             }}
           >
             <svg width="280" height="140" viewBox="0 0 160 80" fill="none">
-              <defs><filter id="bikeGlowF"><feGaussianBlur stdDeviation="1.5" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
+              <defs><filter id="bikeGlowF"><feGaussianBlur stdDeviation="0.5" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
               {/* Back wheel at RD */}
               <g transform={`rotate(${bikeWheelRotation} ${RD.x} ${RD.y})`}>
-                <circle cx={RD.x} cy={RD.y} r={14} fill="rgba(0,0,0,0.5)" stroke={fs} strokeWidth="2.5" />
-                <circle cx={RD.x} cy={RD.y} r={11} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+                <circle cx={RD.x} cy={RD.y} r={WHEEL_R} fill="rgba(0,0,0,0.5)" stroke={fs} strokeWidth="2.5" />
+                <circle cx={RD.x} cy={RD.y} r={WHEEL_R - 3} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
                 {[0, 60, 120, 180, 240, 300].map((d) => (
-                  <line key={d} x1={RD.x} y1={RD.y} x2={RD.x + 11 * Math.cos((d * Math.PI) / 180)} y2={RD.y + 11 * Math.sin((d * Math.PI) / 180)} stroke="rgba(255,255,255,0.25)" strokeWidth="0.8" />
+                  <line key={d} x1={RD.x} y1={RD.y} x2={RD.x + (WHEEL_R - 3) * Math.cos((d * Math.PI) / 180)} y2={RD.y + (WHEEL_R - 3) * Math.sin((d * Math.PI) / 180)} stroke="rgba(255,255,255,0.25)" strokeWidth="0.8" />
                 ))}
               </g>
               {/* Front wheel at FD */}
               <g transform={`rotate(${bikeWheelRotation} ${FD.x} ${FD.y})`}>
-                <circle cx={FD.x} cy={FD.y} r={14} fill="rgba(0,0,0,0.5)" stroke={fs} strokeWidth="2.5" />
-                <circle cx={FD.x} cy={FD.y} r={11} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+                <circle cx={FD.x} cy={FD.y} r={WHEEL_R} fill="rgba(0,0,0,0.5)" stroke={fs} strokeWidth="2.5" />
+                <circle cx={FD.x} cy={FD.y} r={WHEEL_R - 3} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
                 {[0, 60, 120, 180, 240, 300].map((d) => (
-                  <line key={d} x1={FD.x} y1={FD.y} x2={FD.x + 11 * Math.cos((d * Math.PI) / 180)} y2={FD.y + 11 * Math.sin((d * Math.PI) / 180)} stroke="rgba(255,255,255,0.25)" strokeWidth="0.8" />
+                  <line key={d} x1={FD.x} y1={FD.y} x2={FD.x + (WHEEL_R - 3) * Math.cos((d * Math.PI) / 180)} y2={FD.y + (WHEEL_R - 3) * Math.sin((d * Math.PI) / 180)} stroke="rgba(255,255,255,0.25)" strokeWidth="0.8" />
                 ))}
               </g>
-              {/* Frame tubes: every tube connects joint-to-joint */}
+              {/* Main triangle: top tube, head tube, down tube, seat tube */}
               <g stroke={fs} strokeWidth="3.5" strokeLinecap="round" filter="url(#bikeGlowF)">
                 <line x1={SC.x} y1={SC.y} x2={HT.x} y2={HT.y} />
-                <line x1={SC.x} y1={SC.y} x2={HB.x} y2={HB.y} />
-                <line x1={BB.x} y1={BB.y} x2={SC.x} y2={SC.y} />
-                <line x1={BB.x} y1={BB.y} x2={RD.x} y2={RD.y} />
-                <line x1={SC.x} y1={SC.y} x2={RD.x} y2={RD.y} />
                 <line x1={HT.x} y1={HT.y} x2={HB.x} y2={HB.y} />
+                <line x1={HB.x} y1={HB.y} x2={BB.x} y2={BB.y} />
+                <line x1={BB.x} y1={BB.y} x2={SC.x} y2={SC.y} />
+              </g>
+              {/* Rear triangle: seat stay, chain stay */}
+              <g stroke={fs} strokeWidth="2.5" strokeLinecap="round">
+                <line x1={SC.x} y1={SC.y} x2={RD.x} y2={RD.y} />
+                <line x1={BB.x} y1={BB.y} x2={RD.x} y2={RD.y} />
+              </g>
+              {/* Fork: from head tube bottom to front axle */}
+              <g stroke={fs} strokeWidth="3" strokeLinecap="round">
                 <line x1={HB.x} y1={HB.y} x2={FD.x} y2={FD.y} />
               </g>
-              {/* Seat on SC */}
-              <ellipse cx={SC.x} cy={SC.y - 3} rx={9} ry={3} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" />
-              {/* Handlebars from HT */}
+              {/* Seat post + saddle */}
+              <line x1={SC.x} y1={SC.y} x2={SC.x - 1} y2={SC.y - 5} stroke={fs} strokeWidth="2" strokeLinecap="round" />
+              <ellipse cx={SC.x - 1} cy={SC.y - 7} rx={7} ry={2.5} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" />
+              {/* Stem + handlebars from HT */}
               <g stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round">
-                <line x1={HT.x} y1={HT.y} x2={126} y2={22} />
-                <line x1={122} y1={20} x2={130} y2={20} />
+                <line x1={HT.x} y1={HT.y} x2={HT.x + 6} y2={HT.y - 3} />
+                <line x1={HT.x + 3} y1={HT.y - 5} x2={HT.x + 10} y2={HT.y - 2} />
               </g>
-              {/* Rear rack between SC and RD */}
+              {/* Rear rack */}
               <g stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round">
-                <line x1={36} y1={36} x2={56} y2={36} />
-                <line x1={36} y1={36} x2={34} y2={50} />
-                <line x1={56} y1={36} x2={SC.x - 2} y2={SC.y + 8} />
+                <line x1={RD.x + 6} y1={SC.y + 8} x2={SC.x - 2} y2={SC.y + 8} />
+                <line x1={RD.x + 6} y1={SC.y + 8} x2={RD.x + 2} y2={BB.y - 6} />
+                <line x1={SC.x - 2} y1={SC.y + 8} x2={BB.x - 4} y2={BB.y - 6} />
               </g>
               {/* Cranks at BB */}
               <g transform={`rotate(${crankAngle} ${BB.x} ${BB.y})`}>
@@ -810,26 +822,47 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
                 <circle cx={BB.x} cy={BB.y - crankLen} r={2.5} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
                 <circle cx={BB.x} cy={BB.y + crankLen} r={2.5} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
               </g>
-              {/* Packer: torso from hip to shoulder, head, arms to handlebars, IK legs to pedals */}
-              <line x1={hipX} y1={hipY} x2={100} y2={30} stroke={rs} strokeWidth="3" strokeLinecap="round" />
-              <circle cx={104} cy={22} r={8} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-              <line x1={100} y1={30} x2={126} y2={22} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1={100} y1={32} x2={122} y2={22} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke={rs} strokeWidth="3" strokeLinecap="round" />
-              <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke={rs} strokeWidth="3" strokeLinecap="round" />
-              <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke={rs} strokeWidth="3" strokeLinecap="round" />
-              <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke={rs} strokeWidth="3" strokeLinecap="round" />
-              {/* Peeker on rear rack */}
-              <circle cx={46} cy={18} r={12} fill="rgba(0,0,0,0.8)" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" />
-              <circle cx={42} cy={16} r={3} fill="rgba(34,211,238,1)" />
-              <circle cx={50} cy={16} r={3} fill="rgba(34,211,238,1)" />
-              <line x1={46} y1={28} x2={50} y2={38} stroke={rs} strokeWidth="3" strokeLinecap="round" />
-              <line x1={48} y1={30} x2={SC.x} y2={SC.y} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1={48} y1={32} x2={SC.x - 2} y2={SC.y + 2} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
-              <g className="passenger-leg-swing" style={{ transformOrigin: '46px 40px' }}>
-                <line x1={44} y1={40} x2={42} y2={54} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
-                <line x1={48} y1={40} x2={50} y2={54} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
-              </g>
+              {/* Packer: sits on saddle, leans forward to handlebars */}
+              {(() => {
+                const shoulderX = HT.x - 10;
+                const shoulderY = HT.y + 4;
+                const headX = shoulderX + 2;
+                const headY = shoulderY - 12;
+                const gripX = HT.x + 7;
+                const gripY = HT.y - 2;
+                const peekerCx = (RD.x + SC.x) / 2;
+                const rackY = SC.y + 8;
+                return (
+                  <>
+                    {/* Torso: hip to shoulder */}
+                    <line x1={hipX} y1={hipY} x2={shoulderX} y2={shoulderY} stroke={rs} strokeWidth="3" strokeLinecap="round" />
+                    {/* Head */}
+                    <circle cx={headX} cy={headY} r={7} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+                    {/* Arms: shoulder to handlebar grips */}
+                    <line x1={shoulderX} y1={shoulderY} x2={gripX} y2={gripY} stroke={rs} strokeWidth="2" strokeLinecap="round" />
+                    <line x1={shoulderX} y1={shoulderY + 2} x2={gripX - 2} y2={gripY + 1} stroke={rs} strokeWidth="2" strokeLinecap="round" />
+                    {/* Legs: IK from hip to pedals */}
+                    <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+                    <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+                    <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+                    <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+                    {/* Peeker: passenger on rear rack */}
+                    <circle cx={peekerCx} cy={rackY - 16} r={10} fill="rgba(0,0,0,0.8)" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" />
+                    <circle cx={peekerCx - 3} cy={rackY - 18} r={2.5} fill="rgba(34,211,238,1)" />
+                    <circle cx={peekerCx + 3} cy={rackY - 18} r={2.5} fill="rgba(34,211,238,1)" />
+                    {/* Peeker torso */}
+                    <line x1={peekerCx} y1={rackY - 6} x2={peekerCx + 2} y2={rackY + 6} stroke={rs} strokeWidth="3" strokeLinecap="round" />
+                    {/* Peeker arms holding rack/seat */}
+                    <line x1={peekerCx + 2} y1={rackY - 2} x2={SC.x} y2={SC.y + 4} stroke={rs} strokeWidth="2" strokeLinecap="round" />
+                    <line x1={peekerCx + 2} y1={rackY} x2={SC.x} y2={SC.y + 8} stroke={rs} strokeWidth="2" strokeLinecap="round" />
+                    {/* Peeker legs dangling */}
+                    <g className="passenger-leg-swing" style={{ transformOrigin: `${peekerCx}px ${rackY + 8}px` }}>
+                      <line x1={peekerCx - 2} y1={rackY + 8} x2={peekerCx - 3} y2={rackY + 18} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+                      <line x1={peekerCx + 2} y1={rackY + 8} x2={peekerCx + 3} y2={rackY + 18} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+                    </g>
+                  </>
+                );
+              })()}
             </svg>
           </div>
         );
