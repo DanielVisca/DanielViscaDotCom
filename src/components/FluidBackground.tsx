@@ -171,8 +171,7 @@ export default function FluidBackground() {
   return (
     <div
       ref={containerRef}
-      className="fixed z-0"
-      style={{ top: '-5vh', left: '-5vw', width: '110vw', height: '110vh' }}
+      className="fixed inset-0 z-0 w-full h-full"
       aria-hidden
     >
       <canvas

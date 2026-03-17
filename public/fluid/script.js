@@ -1184,7 +1184,6 @@ let colorUpdateTimer = 0.0;
 update();
 
 function update () {
-    if (gl.isContextLost()) return;
     const dt = calcDeltaTime();
     if (resizeCanvas())
         initFramebuffers();
