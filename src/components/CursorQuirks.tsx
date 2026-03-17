@@ -14,7 +14,7 @@ const CURSOR_CLOSE_RADIUS = 80;
 
 type PeekerPhase = 'peeking' | 'pulling_up' | 'standing' | 'running_off';
 const PULL_UP_DURATION_MS = 800;
-const STANDING_BEFORE_RUN_MS = 1000;
+const STANDING_BEFORE_RUN_MS = 500;
 const RUN_SPEED = 6;
 const CHARACTER_WIDTH = 80;
 
@@ -225,9 +225,9 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
           100% { height: 44px; opacity: 1; transform: translateY(0); }
         }
         @keyframes standWobble {
-          0%, 100% { transform: translate(-50%, 0) rotate(0deg); }
-          25% { transform: translate(-50%, 0) rotate(1.5deg); }
-          75% { transform: translate(-50%, 0) rotate(-1.5deg); }
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          25% { transform: translateY(-2px) rotate(1deg); }
+          75% { transform: translateY(-2px) rotate(-1deg); }
         }
         @keyframes runLegLeft {
           0%, 100% { transform: translateY(0) rotate(-8deg); }
