@@ -413,7 +413,7 @@ function RunAwayElements({ mouseX, mouseY }: { mouseX: number; mouseY: number })
     { id: 4, baseX: 0.9, baseY: 0.75 },
   ];
   return (
-    <div className="pointer-events-none fixed inset-0 z-10" aria-hidden>
+    <div className="pointer-events-none fixed inset-0 z-10 hidden md:block" aria-hidden>
       {positions.map(({ id, baseX, baseY }) => (
         <RunAwayDot
           key={id}
@@ -462,7 +462,7 @@ function RunAwayDot({
 
   return (
     <div
-      className="absolute w-2 h-2 rounded-full bg-amber-400/50"
+      className="absolute w-2 h-2 rounded-full bg-white/15"
       style={{
         left: `${baseX * 100}%`,
         top: `${baseY * 100}%`,

@@ -44,10 +44,10 @@ export default function Home() {
       <div id="main" className="relative z-[1] min-h-screen pointer-events-none" role="main">
         <div className="pointer-events-auto max-w-2xl mx-auto px-6 py-12 sm:py-16 md:py-20">
           <div className="rounded-2xl bg-black/60 backdrop-blur-sm border border-white/10 p-6 sm:p-8 md:p-10 shadow-2xl">
-            <h1 className="text-3xl sm:text-4xl font-semibold mb-2" style={{ textShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
+            <h1 className="text-3xl sm:text-4xl font-semibold mb-2 text-white" style={{ textShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
               Hi 👋 I&apos;m Daniel.
             </h1>
-            <p className="text-lg text-white/95 mb-8" style={{ textShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
+            <p className="text-lg text-white/95 mb-8 text-white" style={{ textShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
               {lead}
             </p>
             <PhotoCollage items={PHOTO_ITEMS} />

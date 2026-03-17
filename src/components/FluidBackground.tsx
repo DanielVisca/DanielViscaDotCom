@@ -21,6 +21,15 @@ export default function FluidBackground() {
   }, []);
 
   useEffect(() => {
+    const BURST_INTERVAL_MS = 45000;
+    const t = setInterval(() => {
+      const trigger = (window as unknown as { __FLUID_TRIGGER_BURST?: () => void }).__FLUID_TRIGGER_BURST;
+      if (typeof trigger === 'function') trigger();
+    }, BURST_INTERVAL_MS);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const onPointer = () => {
