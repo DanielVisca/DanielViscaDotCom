@@ -56,7 +56,9 @@ if (typeof window.__FLUID_EMBED__ === 'undefined') {
 
 // Simulation section
 
-const canvas = document.getElementsByTagName('canvas')[0];
+// Use stable id so we don't attach to PostHog or other injected canvases
+const canvas = document.getElementById('fluid-canvas') || document.getElementsByTagName('canvas')[0];
+if (!canvas) throw new Error('fluid: no canvas found');
 resizeCanvas();
 
 let config = {

@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import posthog from 'posthog-js';
 
 export type PhotoItem = { src: string; alt: string; caption: string };
 
@@ -33,9 +34,11 @@ export default function PhotoCollage({ items }: { items: PhotoItem[] }) {
   }, []);
 
   const goPrev = useCallback(() => {
+    posthog.capture('lightbox_navigated', { direction: 'prev' });
     setLightboxIndex((i) => (i === null ? null : i === 0 ? items.length - 1 : i - 1));
   }, [items.length]);
   const goNext = useCallback(() => {
+    posthog.capture('lightbox_navigated', { direction: 'next' });
     setLightboxIndex((i) => (i === null ? null : i === items.length - 1 ? 0 : i + 1));
   }, [items.length]);
 
@@ -65,7 +68,10 @@ export default function PhotoCollage({ items }: { items: PhotoItem[] }) {
           <button
             key={item.src}
             type="button"
-            onClick={() => setLightboxIndex(items.findIndex((i) => i.src === item.src))}
+            onClick={() => {
+              posthog.capture('lightbox_opened', { caption: item.caption });
+              setLightboxIndex(items.findIndex((i) => i.src === item.src));
+            }}
             className="relative block w-full aspect-square max-w-[140px] mx-auto rounded-xl border border-white/20 overflow-hidden shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black opacity-90 hover:opacity-100 hover:border-cyan-400/50 hover:shadow-cyan-500/20 transition-all duration-200 focus:not-sr-only"
             style={{
               transitionDuration: reducedMotion ? '0s' : '200ms',
