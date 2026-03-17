@@ -1,6 +1,16 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+
+const TOOLTIP_ADVANCE_COOLDOWN_MS = 600;
+
+const LINK_TOOLTIPS = [
+  'Click me 👀',
+  'come on just click me!',
+  'do it already 😛',
+  '👀👀👀',
+];
 
 function prepareAboutContent(raw: string): string {
   const lines = raw.trimEnd().split('\n');
@@ -31,6 +41,15 @@ function prepareAboutContent(raw: string): string {
 
 export default function AboutContent({ content }: { content: string }) {
   const text = prepareAboutContent(content);
+  const [tooltipIndex, setTooltipIndex] = useState(0);
+  const lastAdvanceRef = useRef(0);
+
+  const cycleTooltip = () => {
+    const now = Date.now();
+    if (now - lastAdvanceRef.current < TOOLTIP_ADVANCE_COOLDOWN_MS) return;
+    lastAdvanceRef.current = now;
+    setTooltipIndex((i) => (i + 1) % LINK_TOOLTIPS.length);
+  };
 
   return (
     <article
@@ -40,7 +59,7 @@ export default function AboutContent({ content }: { content: string }) {
       <ReactMarkdown
         components={{
           a: ({ href, children, ...props }) => (
-            <span className="group/link relative inline-block">
+            <span className="group/link relative inline-block" onMouseEnter={cycleTooltip}>
               <a
                 href={href}
                 {...props}
@@ -55,7 +74,7 @@ export default function AboutContent({ content }: { content: string }) {
                 className="pointer-events-none absolute left-0 bottom-full mb-1 hidden group-hover/link:block whitespace-nowrap rounded bg-white/10 px-2 py-0.5 text-xs text-white/90 backdrop-blur-sm"
                 style={{ textShadow: '0 0 8px rgba(0,0,0,0.8)' }}
               >
-                Click me 👀
+                {LINK_TOOLTIPS[tooltipIndex]}
               </span>
             </span>
           ),
