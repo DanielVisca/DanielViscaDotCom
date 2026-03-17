@@ -13,7 +13,21 @@ const PEEKER_LERP = 0.08;
 const PUPIL_MAX_OFFSET = 4;
 const CURSOR_CLOSE_RADIUS = 80;
 
-type PeekerPhase = 'peeking' | 'pulling_up' | 'standing' | 'standing_with_bubble' | 'running_off' | 'off_screen';
+type PeekerPhase =
+  | 'peeking'
+  | 'pulling_up'
+  | 'standing'
+  | 'standing_with_bubble'
+  | 'running_off'
+  | 'off_screen'
+  | 'hop_on_bike'
+  | 'biking_to_volcano'
+  | 'dismounting'
+  | 'climbing'
+  | 'cheering'
+  | 'climbing_down'
+  | 'remounting'
+  | 'biking_off';
 const PULL_UP_DURATION_MS = 800;
 const STANDING_BEFORE_RUN_MS = 500;
 const RUN_SPEED = 6;
@@ -21,6 +35,25 @@ const CHARACTER_WIDTH = 80;
 const OFF_SCREEN_DELAY_MS = 30000;
 const PEEKER_INITIAL_DELAY_MS = 25000;
 const LONG_VISIT_MS = 45 * 60 * 1000;
+const ADVENTURE_CHANCE = 0.2;
+const HOP_ON_BIKE_DURATION_MS = 2000;
+const ADVENTURE_BIKE_PATH_DURATION_MS = 10000;
+const VOLCANO_TARGET_RATIO = 0.65;
+const CLIMB_DURATION_MS = 6000;
+const CHEER_DURATION_MS = 3000;
+const CLIMB_DOWN_DURATION_MS = 4000;
+const DISMOUNT_DURATION_MS = 1500;
+const REMOUNT_DURATION_MS = 1500;
+const ADVENTURE_BIKE_OFF_DURATION_MS = 5000;
+const ADVENTURE_BIKE_WIDTH = 200;
+const CRANK_RATIO = 0.3;
+
+const RD = { x: 28, y: 64 };
+const BB = { x: 68, y: 64 };
+const SC = { x: 60, y: 30 };
+const HT = { x: 118, y: 28 };
+const HB = { x: 118, y: 52 };
+const FD = { x: 138, y: 64 };
 
 export default function CursorQuirks() {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
@@ -111,6 +144,20 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
   const rafRef = useRef<number>(0);
   const mountTimeRef = useRef(Date.now());
   const longVisitStandupRef = useRef(false);
+  const startAdventureAfterPullUpRef = useRef(false);
+  const [characterY, setCharacterY] = useState(0);
+  const climbProgressRef = useRef(0);
+  const adventureBikeDirectionRef = useRef(1);
+  const adventureBikeStartTimeRef = useRef(0);
+  const adventureBikeOffStartXRef = useRef(0);
+  const adventureBikeOffStartTimeRef = useRef(0);
+  const [bikeWheelRotation, setBikeWheelRotation] = useState(0);
+  const bikePrevXRef = useRef(0);
+  const BIKE_WHEEL_RADIUS_PX = 14;
+  const BIKE_DEG_PER_PX = 360 / (2 * Math.PI * BIKE_WHEEL_RADIUS_PX);
+  const [volcanoScale, setVolcanoScale] = useState(0);
+  const [bikeParkedX, setBikeParkedX] = useState(0);
+  const [climbProgress, setClimbProgress] = useState(0);
 
   useEffect(() => {
     const updateSize = () => setWindowSize({ w: window.innerWidth, h: window.innerHeight });
@@ -142,16 +189,31 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         longVisitStandupRef.current = true;
         setPhase('pulling_up');
       }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        if (phase === 'peeking') {
+          if (longVisitStandupRef.current) return;
+          longVisitStandupRef.current = true;
+          startAdventureAfterPullUpRef.current = true;
+          setPhase('pulling_up');
+        } else if (phase === 'standing' || phase === 'standing_with_bubble') {
+          setPhase('hop_on_bike');
+        }
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [phase]);
 
   const headCenterX = windowSize.w / 2 + characterX;
+  const baseStandingY = windowSize.h - 44;
+  const isAdventureClimb = phase === 'climbing' || phase === 'cheering' || phase === 'climbing_down';
   const headCenterY =
     phase === 'peeking'
       ? windowSize.h - PEEK_VISIBLE / 2
-      : windowSize.h - 44;
+      : isAdventureClimb
+        ? windowSize.h - climbProgress * Math.max(240, windowSize.h * 0.58) * 0.85 - 44
+        : baseStandingY;
   const headLeft = headCenterX - PEEKER_HEAD_SIZE / 2;
   const headTop = headCenterY - PEEKER_HEAD_SIZE / 2;
   const leftEyeX = headLeft + 14 + 10;
@@ -198,6 +260,11 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
   useEffect(() => {
     if (phase !== 'pulling_up') return;
     const t = setTimeout(() => {
+      if (startAdventureAfterPullUpRef.current) {
+        startAdventureAfterPullUpRef.current = false;
+        setPhase('hop_on_bike');
+        return;
+      }
       if (longVisitStandupRef.current) {
         if (typeof posthog !== 'undefined' && posthog.capture) {
           posthog.capture('long_visit_standup_seen');
@@ -248,6 +315,156 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
     return () => cancelAnimationFrame(raf);
   }, [phase, windowSize.w]);
 
+  // Adventure: hop_on_bike -> after delay -> biking_to_volcano
+  useEffect(() => {
+    if (phase !== 'hop_on_bike') return;
+    const w = windowSize.w || (typeof window !== 'undefined' ? window.innerWidth : 0);
+    setCharacterX(-0.35 * w);
+    setCharacterY(0);
+    setBikeWheelRotation(0);
+    setVolcanoScale(0);
+    setClimbProgress(0);
+    climbProgressRef.current = 0;
+    adventureBikeDirectionRef.current = 1;
+    const t = setTimeout(() => {
+      adventureBikeStartTimeRef.current = Date.now();
+      bikePrevXRef.current = -0.35 * w;
+      setPhase('biking_to_volcano');
+    }, HOP_ON_BIKE_DURATION_MS);
+    return () => clearTimeout(t);
+  }, [phase, windowSize.w]);
+
+  // Adventure: biking_to_volcano -> path + forced perspective volcano -> dismounting
+  useEffect(() => {
+    if (phase !== 'biking_to_volcano' || windowSize.w === 0 || windowSize.h === 0) return;
+    const startX = -0.35 * windowSize.w;
+    const endX = (VOLCANO_TARGET_RATIO - 0.5) * windowSize.w;
+    const h = windowSize.h;
+    bikePrevXRef.current = startX;
+    let raf = 0;
+    const tick = () => {
+      const elapsed = Date.now() - adventureBikeStartTimeRef.current;
+      const progress = Math.min(1, elapsed / ADVENTURE_BIKE_PATH_DURATION_MS);
+      const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const x = startX + (endX - startX) * eased;
+      const rise = 0.10 * h;
+      const y = -rise * Math.sin(progress * Math.PI);
+      const deltaX = x - bikePrevXRef.current;
+      bikePrevXRef.current = x;
+      setCharacterX(x);
+      setCharacterY(y);
+      setBikeWheelRotation((prev) => prev + deltaX * BIKE_DEG_PER_PX);
+      setVolcanoScale(0.15 + 0.85 * eased);
+      if (progress >= 1) {
+        setCharacterY(0);
+        setVolcanoScale(1);
+        queueMicrotask(() => setPhase('dismounting'));
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [phase, windowSize.w, windowSize.h]);
+
+  // Adventure: dismounting -> park bike, hop off, then climb
+  useEffect(() => {
+    if (phase !== 'dismounting') return;
+    setBikeParkedX(characterX);
+    setClimbProgress(0);
+    climbProgressRef.current = 0;
+    const t = setTimeout(() => setPhase('climbing'), DISMOUNT_DURATION_MS);
+    return () => clearTimeout(t);
+  }, [phase, characterX]);
+
+  // Adventure: climbing -> progress 0..1 over CLIMB_DURATION_MS -> cheering
+  useEffect(() => {
+    if (phase !== 'climbing' || windowSize.h === 0) return;
+    const start = Date.now();
+    let raf = 0;
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const progress = Math.min(1, elapsed / CLIMB_DURATION_MS);
+      climbProgressRef.current = progress;
+      setClimbProgress(progress);
+      if (progress >= 1) {
+        queueMicrotask(() => setPhase('cheering'));
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [phase, windowSize.h]);
+
+  // Adventure: cheering -> after CHEER_DURATION_MS -> climbing_down
+  useEffect(() => {
+    if (phase !== 'cheering') return;
+    setClimbProgress(1);
+    const t = setTimeout(() => setPhase('climbing_down'), CHEER_DURATION_MS);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  // Adventure: climbing_down -> progress 1..0 over CLIMB_DOWN_DURATION_MS -> remounting
+  useEffect(() => {
+    if (phase !== 'climbing_down' || windowSize.h === 0) return;
+    const start = Date.now();
+    let raf = 0;
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const progress = Math.max(0, 1 - elapsed / CLIMB_DOWN_DURATION_MS);
+      climbProgressRef.current = progress;
+      setClimbProgress(progress);
+      if (progress <= 0) {
+        queueMicrotask(() => setPhase('remounting'));
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [phase, windowSize.h]);
+
+  // Adventure: remounting -> get back on bike -> biking_off
+  useEffect(() => {
+    if (phase !== 'remounting') return;
+    setCharacterX(bikeParkedX);
+    setClimbProgress(0);
+    const t = setTimeout(() => {
+      adventureBikeOffStartXRef.current = bikeParkedX;
+      adventureBikeOffStartTimeRef.current = Date.now();
+      setPhase('biking_off');
+    }, REMOUNT_DURATION_MS);
+    return () => clearTimeout(t);
+  }, [phase, bikeParkedX]);
+
+  // Adventure: biking_off -> time-based to off right edge -> off_screen
+  useEffect(() => {
+    if (phase !== 'biking_off' || windowSize.w === 0) return;
+    const halfW = windowSize.w / 2 + ADVENTURE_BIKE_WIDTH;
+    const startX = adventureBikeOffStartXRef.current;
+    bikePrevXRef.current = startX;
+    let raf = 0;
+    const tick = () => {
+      const elapsed = Date.now() - adventureBikeOffStartTimeRef.current;
+      const progress = Math.min(1, elapsed / ADVENTURE_BIKE_OFF_DURATION_MS);
+      const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const x = startX + (halfW - startX) * eased;
+      const deltaX = x - bikePrevXRef.current;
+      bikePrevXRef.current = x;
+      setCharacterX(x);
+      setBikeWheelRotation((prev) => prev + deltaX * BIKE_DEG_PER_PX);
+      if (progress >= 1) {
+        setVolcanoScale(0);
+        queueMicrotask(() => setPhase('off_screen'));
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [phase, windowSize.w]);
+
   const distToHead = Math.hypot(mouseX - headCenterX, mouseY - headCenterY);
   const cursorClose = distToHead < CURSOR_CLOSE_RADIUS;
 
@@ -256,10 +473,15 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
       if (typeof posthog !== 'undefined' && posthog.capture) {
         posthog.capture('peeker_clicked');
       }
+      startAdventureAfterPullUpRef.current = Math.random() < ADVENTURE_CHANCE;
       setPhase('pulling_up');
     }
     if (phase === 'standing_with_bubble') {
-      setPhase('running_off');
+      if (Math.random() < ADVENTURE_CHANCE) {
+        setPhase('hop_on_bike');
+      } else {
+        setPhase('running_off');
+      }
     }
   };
 
@@ -330,6 +552,105 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         .peeker-run-leg-left { animation: runLegLeft 0.15s ease-in-out infinite; }
         .peeker-run-leg-right { animation: runLegRight 0.15s ease-in-out infinite; }
         .peeker-run-arm { animation: runArmPump 0.2s ease-in-out infinite; }
+        @keyframes bikeBob {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-2px); }
+        }
+        @keyframes passengerLegSwing {
+          0%, 100% { transform: rotate(0deg); }
+          50% { transform: rotate(5deg); }
+        }
+        @keyframes climbArmLeftReach {
+          0% { transform: rotate(-60deg); }
+          25% { transform: rotate(-130deg); }
+          50% { transform: rotate(-130deg); }
+          75% { transform: rotate(-90deg); }
+          100% { transform: rotate(-60deg); }
+        }
+        @keyframes climbArmRightReach {
+          0% { transform: rotate(-90deg); }
+          25% { transform: rotate(-60deg); }
+          50% { transform: rotate(-130deg); }
+          75% { transform: rotate(-130deg); }
+          100% { transform: rotate(-90deg); }
+        }
+        @keyframes climbLegStepLeft {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          25% { transform: translateY(-4px) rotate(8deg); }
+          50% { transform: translateY(-8px) rotate(4deg); }
+          75% { transform: translateY(-4px) rotate(0deg); }
+        }
+        @keyframes climbLegStepRight {
+          0%, 100% { transform: translateY(-8px) rotate(4deg); }
+          25% { transform: translateY(-4px) rotate(0deg); }
+          50% { transform: translateY(0) rotate(0deg); }
+          75% { transform: translateY(-4px) rotate(8deg); }
+        }
+        @keyframes climbSlip {
+          0%, 78%, 100% { transform: translateY(0); }
+          82% { transform: translateY(12px); }
+          88% { transform: translateY(10px); }
+          95% { transform: translateY(2px); }
+        }
+        @keyframes fallingRock {
+          0% { transform: translateY(0) translateX(0) scale(1); opacity: 0.7; }
+          100% { transform: translateY(200px) translateX(20px) scale(0.5); opacity: 0; }
+        }
+        @keyframes windParticle {
+          0% { transform: translateX(-40px) translateY(0); opacity: 0; }
+          20% { opacity: 0.5; }
+          80% { opacity: 0.3; }
+          100% { transform: translateX(120px) translateY(-10px); opacity: 0; }
+        }
+        @keyframes cheerBounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes cheerArmLeft {
+          0% { transform: rotate(-60deg); }
+          50% { transform: rotate(-110deg); }
+          100% { transform: rotate(-110deg); }
+        }
+        @keyframes cheerArmRight {
+          0% { transform: rotate(-60deg); }
+          50% { transform: rotate(110deg); }
+          100% { transform: rotate(110deg); }
+        }
+        @keyframes volcanoGlow {
+          0%, 100% { opacity: 0.85; }
+          50% { opacity: 1; }
+        }
+        @keyframes volcanoSmoke {
+          0% { opacity: 0.25; transform: translate(-50%, 0) scale(0.8); }
+          50% { opacity: 0.45; transform: translate(-50%, -12%) scale(1.1); }
+          100% { opacity: 0; transform: translate(-50%, -30%) scale(1.3); }
+        }
+        @keyframes lavaDrip {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; }
+        }
+        .peeker-bike-bob { animation: bikeBob 0.4s ease-in-out infinite; }
+        .passenger-leg-swing { animation: passengerLegSwing 2s ease-in-out infinite; }
+        .climb-arm-left { animation: climbArmLeftReach 1.5s ease-in-out infinite; }
+        .climb-arm-right { animation: climbArmRightReach 1.5s ease-in-out infinite; }
+        .climb-leg-left { animation: climbLegStepLeft 1.5s ease-in-out infinite; }
+        .climb-leg-right { animation: climbLegStepRight 1.5s ease-in-out infinite; }
+        .climb-slip { animation: climbSlip 4s ease-in-out infinite; }
+        .falling-rock { animation: fallingRock 1.5s ease-in forwards; }
+        .falling-rock-delay-1 { animation: fallingRock 1.8s ease-in 0.6s forwards; }
+        .falling-rock-delay-2 { animation: fallingRock 1.4s ease-in 1.2s forwards; }
+        .wind-particle { animation: windParticle 3s linear infinite; }
+        .wind-particle-delay-1 { animation: windParticle 3.5s linear 0.8s infinite; }
+        .wind-particle-delay-2 { animation: windParticle 2.8s linear 1.6s infinite; }
+        .cheer-bounce { animation: cheerBounce 0.5s ease-in-out 3; }
+        .cheer-arm-left { animation: cheerArmLeft 0.4s ease-out forwards; }
+        .cheer-arm-right { animation: cheerArmRight 0.4s ease-out forwards; }
+        .volcano-glow { animation: volcanoGlow 2s ease-in-out infinite; }
+        .volcano-smoke { animation: volcanoSmoke 4s ease-in-out infinite; }
+        .volcano-smoke-delay { animation: volcanoSmoke 5s ease-in-out 1.5s infinite; }
+        .volcano-smoke-delay-2 { animation: volcanoSmoke 6s ease-in-out 3s infinite; }
+        .lava-drip { animation: lavaDrip 3s ease-in-out infinite; }
+        .lava-drip-delay { animation: lavaDrip 4s ease-in-out 1.5s infinite; }
       `}</style>
 
       {phase === 'peeking' && (
@@ -350,6 +671,242 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
           <PeekerEyes {...sharedEyeProps} />
         </div>
       )}
+
+      {/* Volcano: forced perspective (scales from 0.15 to 1.0 as biker approaches) */}
+      {volcanoScale > 0 && (
+        <div
+          className="pointer-events-none absolute z-0"
+          style={{
+            left: `${VOLCANO_TARGET_RATIO * 100}%`,
+            bottom: 0,
+            transform: `translate(-50%, 0) scale(${volcanoScale})`,
+            transformOrigin: 'center bottom',
+            width: 'min(38vw, 300px)',
+            height: '58vh',
+            minHeight: 240,
+          }}
+        >
+          <div className="volcano-smoke absolute left-1/2 rounded-full bg-gray-500/30 blur-xl" style={{ width: '45%', height: '16%', top: '-6%' }} />
+          <div className="volcano-smoke-delay absolute left-1/2 rounded-full bg-gray-400/25 blur-2xl" style={{ width: '35%', height: '12%', top: '-3%' }} />
+          <div className="volcano-smoke-delay-2 absolute left-1/2 rounded-full bg-gray-500/20 blur-xl" style={{ width: '28%', height: '10%', top: '-1%' }} />
+          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 400" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="volcCone" x1="0.3" y1="0" x2="0.7" y2="1">
+                <stop offset="0%" stopColor="#4a4035" />
+                <stop offset="40%" stopColor="#3a3028" />
+                <stop offset="70%" stopColor="#2a231c" />
+                <stop offset="100%" stopColor="#3d352c" />
+              </linearGradient>
+              <linearGradient id="volcSnow" x1="0.5" y1="0" x2="0.5" y2="1">
+                <stop offset="0%" stopColor="#c8c8d0" />
+                <stop offset="100%" stopColor="#9a9aa8" />
+              </linearGradient>
+              <radialGradient id="volcLava" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%" stopColor="#ff6b1a" />
+                <stop offset="60%" stopColor="#dc2626" />
+                <stop offset="100%" stopColor="#7f1d1d" />
+              </radialGradient>
+              <filter id="lavaGlow"><feGaussianBlur in="SourceGraphic" stdDeviation="6" /></filter>
+              <filter id="bikeGlow"><feGaussianBlur stdDeviation="1.5" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+            </defs>
+            <polygon points="150,12 285,390 15,390" fill="url(#volcCone)" stroke="#3d352c" strokeWidth="1" />
+            <line x1={80} y1={200} x2={140} y2={40} stroke="#2a231c" strokeWidth="2" opacity="0.3" />
+            <line x1={200} y1={180} x2={165} y2={50} stroke="#1f1a16" strokeWidth="2.5" opacity="0.25" />
+            <line x1={90} y1={280} x2={110} y2={260} stroke="#1f1a16" strokeWidth="1.5" opacity="0.15" />
+            <line x1={180} y1={300} x2={200} y2={275} stroke="#1f1a16" strokeWidth="1.5" opacity="0.12" />
+            <line x1={120} y1={340} x2={140} y2={320} stroke="#1f1a16" strokeWidth="1" opacity="0.1" />
+            <polygon points="150,12 112,80 105,75 95,85 88,78 80,90 72,85 60,105 240,105 228,85 220,90 212,78 205,85 195,75 188,80" fill="url(#volcSnow)" opacity="0.85" />
+            <ellipse cx={150} cy={22} rx={28} ry={12} fill="#1a1714" stroke="#2a231c" strokeWidth="1.5" />
+            <ellipse cx={150} cy={20} rx={22} ry={9} fill="#ff6b1a" opacity="0.4" filter="url(#lavaGlow)" />
+            <ellipse cx={150} cy={20} rx={16} ry={7} fill="url(#volcLava)" className="volcano-glow" />
+            <path d="M142,28 Q140,60 138,90" stroke="#dc4a1a" strokeWidth="2" fill="none" opacity="0.5" className="lava-drip" />
+            <path d="M158,28 Q162,55 165,80" stroke="#dc4a1a" strokeWidth="1.5" fill="none" opacity="0.4" className="lava-drip-delay" />
+          </svg>
+        </div>
+      )}
+
+      {/* Bike: visible during biking phases + dismounting/remounting. Joint-based diamond frame. */}
+      {(phase === 'hop_on_bike' || phase === 'biking_to_volcano' || phase === 'dismounting' || phase === 'remounting' || phase === 'biking_off') && (() => {
+        const lean = phase === 'biking_to_volcano' ? characterY * 0.04 : 0;
+        const bikeY = phase === 'biking_to_volcano' ? characterY : 0;
+        const bikeX = (phase === 'dismounting' || phase === 'remounting') ? bikeParkedX : characterX;
+        const crankAngle = bikeWheelRotation * CRANK_RATIO;
+        const crankRad = (crankAngle * Math.PI) / 180;
+        const crankLen = 10;
+        const pedal1X = BB.x + crankLen * Math.cos(crankRad);
+        const pedal1Y = BB.y + crankLen * Math.sin(crankRad);
+        const pedal2X = BB.x + crankLen * Math.cos(crankRad + Math.PI);
+        const pedal2Y = BB.y + crankLen * Math.sin(crankRad + Math.PI);
+        const hipX = 66; const hipY = 40;
+        const thighLen = 16; const shinLen = 16;
+        const solveKnee = (hx: number, hy: number, px: number, py: number) => {
+          const dx = px - hx; const dy = py - hy;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const clampedDist = Math.min(dist, thighLen + shinLen - 0.5);
+          const a = Math.atan2(dy, dx);
+          const cosA = (thighLen * thighLen + clampedDist * clampedDist - shinLen * shinLen) / (2 * thighLen * clampedDist);
+          const ka = Math.acos(Math.max(-1, Math.min(1, cosA)));
+          return { x: hx + thighLen * Math.cos(a - ka), y: hy + thighLen * Math.sin(a - ka) };
+        };
+        const knee1 = solveKnee(hipX, hipY, pedal1X, pedal1Y);
+        const knee2 = solveKnee(hipX, hipY, pedal2X, pedal2Y);
+        const fs = 'rgba(255,255,255,0.5)';
+        const rs = 'rgba(255,255,255,0.45)';
+        return (
+          <div
+            className="pointer-events-none absolute peeker-bike-bob"
+            style={{
+              left: '50%',
+              bottom: 0,
+              transform: `translate(calc(-50% + ${bikeX}px), ${bikeY}px) rotate(${lean}deg)`,
+              transformOrigin: 'center bottom',
+            }}
+          >
+            <svg width="280" height="140" viewBox="0 0 160 80" fill="none">
+              <defs><filter id="bikeGlowF"><feGaussianBlur stdDeviation="1.5" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
+              {/* Back wheel at RD */}
+              <g transform={`rotate(${bikeWheelRotation} ${RD.x} ${RD.y})`}>
+                <circle cx={RD.x} cy={RD.y} r={14} fill="rgba(0,0,0,0.5)" stroke={fs} strokeWidth="2.5" />
+                <circle cx={RD.x} cy={RD.y} r={11} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+                {[0, 60, 120, 180, 240, 300].map((d) => (
+                  <line key={d} x1={RD.x} y1={RD.y} x2={RD.x + 11 * Math.cos((d * Math.PI) / 180)} y2={RD.y + 11 * Math.sin((d * Math.PI) / 180)} stroke="rgba(255,255,255,0.25)" strokeWidth="0.8" />
+                ))}
+              </g>
+              {/* Front wheel at FD */}
+              <g transform={`rotate(${bikeWheelRotation} ${FD.x} ${FD.y})`}>
+                <circle cx={FD.x} cy={FD.y} r={14} fill="rgba(0,0,0,0.5)" stroke={fs} strokeWidth="2.5" />
+                <circle cx={FD.x} cy={FD.y} r={11} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+                {[0, 60, 120, 180, 240, 300].map((d) => (
+                  <line key={d} x1={FD.x} y1={FD.y} x2={FD.x + 11 * Math.cos((d * Math.PI) / 180)} y2={FD.y + 11 * Math.sin((d * Math.PI) / 180)} stroke="rgba(255,255,255,0.25)" strokeWidth="0.8" />
+                ))}
+              </g>
+              {/* Frame tubes: every tube connects joint-to-joint */}
+              <g stroke={fs} strokeWidth="3.5" strokeLinecap="round" filter="url(#bikeGlowF)">
+                <line x1={SC.x} y1={SC.y} x2={HT.x} y2={HT.y} />
+                <line x1={SC.x} y1={SC.y} x2={HB.x} y2={HB.y} />
+                <line x1={BB.x} y1={BB.y} x2={SC.x} y2={SC.y} />
+                <line x1={BB.x} y1={BB.y} x2={RD.x} y2={RD.y} />
+                <line x1={SC.x} y1={SC.y} x2={RD.x} y2={RD.y} />
+                <line x1={HT.x} y1={HT.y} x2={HB.x} y2={HB.y} />
+                <line x1={HB.x} y1={HB.y} x2={FD.x} y2={FD.y} />
+              </g>
+              {/* Seat on SC */}
+              <ellipse cx={SC.x} cy={SC.y - 3} rx={9} ry={3} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" />
+              {/* Handlebars from HT */}
+              <g stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round">
+                <line x1={HT.x} y1={HT.y} x2={126} y2={22} />
+                <line x1={122} y1={20} x2={130} y2={20} />
+              </g>
+              {/* Rear rack between SC and RD */}
+              <g stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round">
+                <line x1={36} y1={36} x2={56} y2={36} />
+                <line x1={36} y1={36} x2={34} y2={50} />
+                <line x1={56} y1={36} x2={SC.x - 2} y2={SC.y + 8} />
+              </g>
+              {/* Cranks at BB */}
+              <g transform={`rotate(${crankAngle} ${BB.x} ${BB.y})`}>
+                <line x1={BB.x} y1={BB.y} x2={BB.x} y2={BB.y - crankLen} stroke="rgba(255,255,255,0.35)" strokeWidth="2" />
+                <line x1={BB.x} y1={BB.y} x2={BB.x} y2={BB.y + crankLen} stroke="rgba(255,255,255,0.35)" strokeWidth="2" />
+                <circle cx={BB.x} cy={BB.y - crankLen} r={2.5} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+                <circle cx={BB.x} cy={BB.y + crankLen} r={2.5} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              </g>
+              {/* Packer: torso from hip to shoulder, head, arms to handlebars, IK legs to pedals */}
+              <line x1={hipX} y1={hipY} x2={100} y2={30} stroke={rs} strokeWidth="3" strokeLinecap="round" />
+              <circle cx={104} cy={22} r={8} fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+              <line x1={100} y1={30} x2={126} y2={22} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+              <line x1={100} y1={32} x2={122} y2={22} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+              <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke={rs} strokeWidth="3" strokeLinecap="round" />
+              <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke={rs} strokeWidth="3" strokeLinecap="round" />
+              <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke={rs} strokeWidth="3" strokeLinecap="round" />
+              <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke={rs} strokeWidth="3" strokeLinecap="round" />
+              {/* Peeker on rear rack */}
+              <circle cx={46} cy={18} r={12} fill="rgba(0,0,0,0.8)" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" />
+              <circle cx={42} cy={16} r={3} fill="rgba(34,211,238,1)" />
+              <circle cx={50} cy={16} r={3} fill="rgba(34,211,238,1)" />
+              <line x1={46} y1={28} x2={50} y2={38} stroke={rs} strokeWidth="3" strokeLinecap="round" />
+              <line x1={48} y1={30} x2={SC.x} y2={SC.y} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+              <line x1={48} y1={32} x2={SC.x - 2} y2={SC.y + 2} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+              <g className="passenger-leg-swing" style={{ transformOrigin: '46px 40px' }}>
+                <line x1={44} y1={40} x2={42} y2={54} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+                <line x1={48} y1={40} x2={50} y2={54} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+              </g>
+            </svg>
+          </div>
+        );
+      })()}
+
+      {/* Climbing / cheering / climbing_down: anchored to volcano position */}
+      {(phase === 'climbing' || phase === 'cheering' || phase === 'climbing_down') && (() => {
+        const volcanoHeightPx = Math.max(240, windowSize.h * 0.58);
+        const climbBottom = climbProgress * volcanoHeightPx * 0.85;
+        const isDown = phase === 'climbing_down';
+        const isClimbing = phase === 'climbing' || isDown;
+        return (
+          <div
+            className={`pointer-events-none absolute flex flex-col items-center ${isClimbing ? 'climb-slip' : 'cheer-bounce'}`}
+            style={{
+              left: `${VOLCANO_TARGET_RATIO * 100}%`,
+              bottom: climbBottom,
+              transform: `translateX(-50%)${isDown ? ' scaleX(-1)' : ''}`,
+            }}
+          >
+            {isClimbing && (
+              <>
+                <div className="wind-particle absolute w-1.5 h-1.5 rounded-full bg-white/40" style={{ top: -20, left: -30 }} />
+                <div className="wind-particle-delay-1 absolute w-1 h-1 rounded-full bg-white/30" style={{ top: 10, left: -20 }} />
+                <div className="wind-particle-delay-2 absolute w-1.5 h-1.5 rounded-full bg-white/35" style={{ top: 40, left: -40 }} />
+                <div className="falling-rock absolute w-1.5 h-1.5 rounded-full bg-stone-500/70" style={{ top: -10, left: 20 }} />
+                <div className="falling-rock-delay-1 absolute w-2 h-2 rounded-sm bg-stone-600/60" style={{ top: -5, left: -15 }} />
+                <div className="falling-rock-delay-2 absolute w-1 h-1 rounded-full bg-stone-500/50" style={{ top: -15, left: 5 }} />
+                <svg className="absolute pointer-events-none" style={{ top: PEEKER_HEAD_SIZE + 20, left: -10, width: 60, height: 200, overflow: 'visible' }}>
+                  <path d="M30,0 Q15,60 25,120 Q35,160 20,200" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" fill="none" strokeDasharray="4 3" />
+                  <circle cx={20} cy={200} r={3} fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+                </svg>
+              </>
+            )}
+            <div className="absolute flex gap-16" style={{ bottom: PEEKER_HEAD_SIZE + 40, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
+              <div className="relative" style={{ height: 40, width: 16 }}>
+                <div className={`h-10 w-4 rounded-full border border-white/10 bg-black/80 origin-bottom ${isClimbing ? 'climb-arm-left' : 'cheer-arm-left'}`}>
+                  {phase === 'climbing' && (
+                    <svg width="24" height="36" viewBox="0 0 24 36" fill="none" className="absolute" style={{ top: -34, left: -4 }}>
+                      <line x1={12} y1={6} x2={12} y2={32} stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M12,6 Q18,4 20,10" stroke="rgba(255,255,255,0.35)" strokeWidth="2" fill="none" strokeLinecap="round" />
+                      <line x1={12} y1={6} x2={6} y2={10} stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" />
+                      <line x1={12} y1={32} x2={12} y2={36} stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  )}
+                  {phase === 'cheering' && (
+                    <svg width="20" height="24" viewBox="0 0 20 24" fill="none" className="absolute" style={{ top: -22, left: 0 }}>
+                      <line x1={4} y1={0} x2={4} y2={24} stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+                      <polygon points="4,0 18,4 4,10" fill="rgba(34,211,238,0.6)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <div className={`h-10 w-4 rounded-full border border-white/10 bg-black/80 origin-bottom ${isClimbing ? 'climb-arm-right' : 'cheer-arm-right'}`} />
+            </div>
+            <svg className="absolute" style={{ top: -6, left: '50%', transform: 'translateX(-50%)', width: PEEKER_HEAD_SIZE + 8, height: 20, overflow: 'visible' }}>
+              <path d={`M4,18 Q${(PEEKER_HEAD_SIZE + 8) / 2},0 ${PEEKER_HEAD_SIZE + 4},18`} stroke="rgba(255,255,255,0.2)" strokeWidth="3" fill="rgba(0,0,0,0.5)" strokeLinecap="round" />
+              <line x1={12} y1={18} x2={12} y2={24} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+              <line x1={PEEKER_HEAD_SIZE - 4} y1={18} x2={PEEKER_HEAD_SIZE - 4} y2={24} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+            </svg>
+            <div
+              className="relative rounded-full border border-white/10 bg-black/80 shadow-[0_0_20px_rgba(34,211,238,0.15)]"
+              style={{ width: PEEKER_HEAD_SIZE, height: PEEKER_HEAD_SIZE, marginBottom: -4, transform: isClimbing ? 'rotate(3deg)' : 'none' }}
+            >
+              <PeekerEyes {...sharedEyeProps} />
+            </div>
+            <div
+              className="overflow-hidden rounded-b-2xl border border-t-0 border-white/10 bg-black/80"
+              style={{ width: 56, height: 44, marginBottom: 0, transform: isClimbing ? 'rotate(3deg)' : 'none' }}
+            />
+            <div className="flex justify-center gap-2" style={{ marginTop: -2 }}>
+              <div className={`h-5 w-5 rounded-b-md border border-white/10 bg-black/80 ${isClimbing ? 'climb-leg-left' : ''}`} style={{ transformOrigin: 'top center' }} />
+              <div className={`h-5 w-5 rounded-b-md border border-white/10 bg-black/80 ${isClimbing ? 'climb-leg-right' : ''}`} style={{ transformOrigin: 'top center' }} />
+            </div>
+          </div>
+        );
+      })()}
 
       {(phase === 'pulling_up' || phase === 'standing' || phase === 'standing_with_bubble' || phase === 'running_off') && (
         <div

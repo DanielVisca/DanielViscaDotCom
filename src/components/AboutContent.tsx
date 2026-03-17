@@ -43,6 +43,7 @@ function prepareAboutContent(raw: string): string {
   result = result.replace(/\*\*OutfitterHQ\*\*/, '**[OutfitterHQ](https://outfitterhq.ca/)**');
   result = result.replace(/\*\*PostHog\*\*/, '**[PostHog](https://posthog.com/)**');
   result = result.replace(/\*\*Microsoft\*\*/, '**[Microsoft](https://www.microsoft.com/)**');
+  result = result.replace(/\*\*The Muddy Goose\*\*/, '**[The Muddy Goose](https://muddygoosepottery.com/)**');
   return result;
 }
 
