@@ -18,7 +18,8 @@ function prepareAboutContent(raw: string): string {
   const linkedin = 'https://www.linkedin.com/in/daniel-visca/';
   const github = 'https://github.com/DanielVisca';
   const medium = 'https://medium.com/@danielvisca';
-  const email = 'mailto:danielvisca96@gmail.com';
+  const emailSubject = encodeURIComponent("Hey from the internet (your site said I should say hi 👋)");
+  const email = `https://mail.google.com/mail/?view=cm&fs=1&to=danielvisca96@gmail.com&su=${emailSubject}`;
   const contactWithLinks = `[email](${email}) · [github](${github}) · [linkedin](${linkedin}) · [medium](${medium}) · [resume](/resume.pdf)`;
 
   const out: string[] = [];
