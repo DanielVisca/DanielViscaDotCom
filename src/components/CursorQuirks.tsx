@@ -17,8 +17,8 @@ const PULL_UP_DURATION_MS = 800;
 const STANDING_BEFORE_RUN_MS = 500;
 const RUN_SPEED = 6;
 const CHARACTER_WIDTH = 80;
-const OFF_SCREEN_DELAY_MS = 10000;
-const PEEKER_INITIAL_DELAY_MS = 8000;
+const OFF_SCREEN_DELAY_MS = 30000;
+const PEEKER_INITIAL_DELAY_MS = 25000;
 
 export default function CursorQuirks() {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
