@@ -815,11 +815,17 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
                 <circle cx={BB.x} cy={BB.y - crankLen} r={2.5} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
                 <circle cx={BB.x} cy={BB.y + crankLen} r={2.5} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
               </g>
-              {/* Rider legs: IK from hip to pedals (SVG, part of bike mechanics) */}
-              <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke={rs} strokeWidth="2.5" strokeLinecap="round" />
+              {/* Rider legs: IK from hip to pedals, styled like peeker (dark fill, light border) */}
+              {/* Border layer (wider, drawn first) */}
+              <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke="rgba(255,255,255,0.1)" strokeWidth="7" strokeLinecap="round" />
+              <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke="rgba(255,255,255,0.1)" strokeWidth="7" strokeLinecap="round" />
+              <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke="rgba(255,255,255,0.1)" strokeWidth="7" strokeLinecap="round" />
+              <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke="rgba(255,255,255,0.1)" strokeWidth="7" strokeLinecap="round" />
+              {/* Fill layer (narrower, drawn on top) */}
+              <line x1={hipX} y1={hipY} x2={knee1.x} y2={knee1.y} stroke="rgba(0,0,0,0.8)" strokeWidth="5" strokeLinecap="round" />
+              <line x1={knee1.x} y1={knee1.y} x2={pedal1X} y2={pedal1Y} stroke="rgba(0,0,0,0.8)" strokeWidth="5" strokeLinecap="round" />
+              <line x1={hipX} y1={hipY} x2={knee2.x} y2={knee2.y} stroke="rgba(0,0,0,0.8)" strokeWidth="5" strokeLinecap="round" />
+              <line x1={knee2.x} y1={knee2.y} x2={pedal2X} y2={pedal2Y} stroke="rgba(0,0,0,0.8)" strokeWidth="5" strokeLinecap="round" />
             </svg>
             {/* Peeker (the actual div-based character, same as when running) sitting on the saddle */}
             <div className="absolute flex flex-col items-center" style={{
