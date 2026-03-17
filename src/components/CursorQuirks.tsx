@@ -496,6 +496,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
       bikePrevXRef.current = x;
       setCharacterX(x);
       setBikeWheelRotation((prev) => prev + deltaX * BIKE_DEG_PER_PX);
+      setVolcanoScale(1 - eased);
       if (progress >= 1) {
         setVolcanoScale(0);
         queueMicrotask(() => setPhase('off_screen'));
@@ -604,18 +605,18 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
           50% { transform: rotate(5deg); }
         }
         @keyframes climbArmLeftReach {
-          0% { transform: rotate(-60deg); }
-          25% { transform: rotate(-130deg); }
-          50% { transform: rotate(-130deg); }
-          75% { transform: rotate(-90deg); }
-          100% { transform: rotate(-60deg); }
+          0% { transform: rotate(-50deg); }
+          25% { transform: rotate(-95deg); }
+          50% { transform: rotate(-95deg); }
+          75% { transform: rotate(-72deg); }
+          100% { transform: rotate(-50deg); }
         }
         @keyframes climbArmRightReach {
-          0% { transform: rotate(-90deg); }
-          25% { transform: rotate(-60deg); }
-          50% { transform: rotate(-130deg); }
-          75% { transform: rotate(-130deg); }
-          100% { transform: rotate(-90deg); }
+          0% { transform: rotate(-72deg); }
+          25% { transform: rotate(-50deg); }
+          50% { transform: rotate(-95deg); }
+          75% { transform: rotate(-95deg); }
+          100% { transform: rotate(-72deg); }
         }
         @keyframes climbLegStepLeft {
           0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -868,9 +869,9 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
               left: hipX * (280 / 160) - PEEKER_HEAD_SIZE / 2,
               bottom: (80 - hipY) * (140 / 80),
             }}>
-              <div className="absolute flex gap-12" style={{ bottom: PEEKER_HEAD_SIZE + 24, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
-                <div className="h-8 w-3 rounded-full border border-white/10 bg-black/80 origin-bottom" style={{ transform: 'rotate(-30deg)' }} />
-                <div className="h-8 w-3 rounded-full border border-white/10 bg-black/80 origin-bottom" style={{ transform: 'rotate(30deg)' }} />
+              <div className="absolute flex gap-12" style={{ bottom: 44, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
+                <div className="h-8 w-3 rounded-full border border-white/10 bg-black/80 origin-bottom" style={{ transform: 'rotate(-48deg)' }} />
+                <div className="h-8 w-3 rounded-full border border-white/10 bg-black/80 origin-bottom" style={{ transform: 'rotate(48deg)' }} />
               </div>
               <div
                 className="relative rounded-full border border-white/10 bg-black/80 shadow-[0_0_20px_rgba(34,211,238,0.15)]"
@@ -895,16 +896,16 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         const x = isSteppingDown ? bikeParkedX : characterX;
         return (
           <div
-            className="pointer-events-none absolute flex flex-col items-center peeker-run-arm"
+            className="pointer-events-none absolute flex flex-col items-center"
             style={{
               left: '50%',
               bottom: stepDownBottom,
               transform: `translate(calc(-50% + ${x}px), 0)`,
             }}
           >
-            <div className="absolute flex gap-20" style={{ bottom: PEEKER_HEAD_SIZE + 40, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
-              <div className="h-10 w-4 rounded-full border border-white/10 bg-black/80 origin-bottom" />
-              <div className="h-10 w-4 rounded-full border border-white/10 bg-black/80 origin-bottom" />
+            <div className="absolute flex gap-20" style={{ bottom: 44, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
+              <div className="h-10 w-4 rounded-full border border-white/10 bg-black/80 origin-bottom" style={{ transform: 'rotate(-15deg)' }} />
+              <div className="h-10 w-4 rounded-full border border-white/10 bg-black/80 origin-bottom" style={{ transform: 'rotate(15deg)' }} />
             </div>
             <div
               className="relative rounded-full border border-white/10 bg-black/80 shadow-[0_0_20px_rgba(34,211,238,0.15)]"
@@ -946,7 +947,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
                 </svg>
               </>
             )}
-            <div className="absolute flex gap-16" style={{ bottom: PEEKER_HEAD_SIZE + 40, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
+            <div className="absolute flex gap-16" style={{ bottom: 44, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
               <div className="relative" style={{ height: 40, width: 16 }}>
                 <div className={`h-10 w-4 rounded-full border border-white/10 bg-black/80 origin-bottom ${isClimbing ? 'climb-arm-left' : 'cheer-arm-left'}`}>
                   {phase === 'climbing' && (
@@ -1012,7 +1013,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
               Hey, I know Daniel is really cool and great and all... but you&apos;ve been here for a really long time and you are probably really cool too with your own life to live. I think we should part ways now. It&apos;s not me, it&apos;s you.
             </div>
           )}
-          <div className="absolute flex gap-20" style={{ bottom: PEEKER_HEAD_SIZE + 40, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
+          <div className="absolute flex gap-20" style={{ bottom: 44, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
             <div
               className={`h-10 w-4 rounded-full border border-white/10 bg-black/80 shadow-[0_0_8px_rgba(34,211,238,0.2)] origin-bottom ${phase === 'pulling_up' ? 'peeker-pull-up-arm-left' : ''} ${phase === 'running_off' ? 'peeker-run-arm' : ''}`}
               style={phase === 'standing' || phase === 'standing_with_bubble' ? { transform: 'rotate(-15deg)' } : undefined}
