@@ -12,6 +12,12 @@ const PEEKER_LERP = 0.08;
 const PUPIL_MAX_OFFSET = 4;
 const CURSOR_CLOSE_RADIUS = 80;
 
+type PeekerPhase = 'peeking' | 'pulling_up' | 'standing' | 'running_off';
+const PULL_UP_DURATION_MS = 800;
+const STANDING_BEFORE_RUN_MS = 1000;
+const RUN_SPEED = 6;
+const CHARACTER_WIDTH = 80;
+
 export default function CursorQuirks() {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const [follow, setFollow] = useState({ x: 0, y: 0 });
@@ -76,6 +82,9 @@ function FollowDots({ x, y }: { x: number; y: number }) {
 }
 
 function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
+  const [phase, setPhase] = useState<PeekerPhase>('peeking');
+  const [characterX, setCharacterX] = useState(0);
+  const runDirectionRef = useRef(1);
   const [pupils, setPupils] = useState({ left: { x: 0, y: 0 }, right: { x: 0, y: 0 } });
   const pupilsRef = useRef({ left: { x: 0, y: 0 }, right: { x: 0, y: 0 } });
   const [windowSize, setWindowSize] = useState({ w: 0, h: 0 });
@@ -89,15 +98,20 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
+  const headCenterX = windowSize.w / 2 + characterX;
+  const headCenterY =
+    phase === 'peeking'
+      ? windowSize.h - PEEK_VISIBLE / 2
+      : windowSize.h - 44;
+  const headLeft = headCenterX - PEEKER_HEAD_SIZE / 2;
+  const headTop = headCenterY - PEEKER_HEAD_SIZE / 2;
+  const leftEyeX = headLeft + 14 + 10;
+  const leftEyeY = headTop + 14 + 10;
+  const rightEyeX = headLeft + 14 + 20 + 24 + 10;
+  const rightEyeY = headTop + 14 + 10;
+
   useEffect(() => {
     if (windowSize.w === 0 || windowSize.h === 0) return;
-    const headLeft = windowSize.w / 2 - PEEKER_HEAD_SIZE / 2;
-    const headTop = windowSize.h - PEEK_VISIBLE;
-    const leftEyeX = headLeft + 14 + 10;
-    const leftEyeY = headTop + 14 + 10;
-    const rightEyeX = headLeft + 14 + 20 + 24 + 10;
-    const rightEyeY = headTop + 14 + 10;
-
     const tick = () => {
       const clamp = (dx: number, dy: number) => {
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -118,7 +132,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [mouseX, mouseY, windowSize.w, windowSize.h]);
+  }, [mouseX, mouseY, windowSize.w, windowSize.h, characterX, phase]);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
@@ -132,9 +146,56 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
     };
   }, []);
 
-  const headCenterY = windowSize.h - PEEK_VISIBLE / 2;
-  const distToHead = Math.hypot(mouseX - windowSize.w / 2, mouseY - headCenterY);
+  useEffect(() => {
+    if (phase !== 'pulling_up') return;
+    const t = setTimeout(() => setPhase('standing'), PULL_UP_DURATION_MS);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'standing') return;
+    const t = setTimeout(() => {
+      runDirectionRef.current = mouseX < windowSize.w / 2 ? 1 : -1;
+      setPhase('running_off');
+    }, STANDING_BEFORE_RUN_MS);
+    return () => clearTimeout(t);
+  }, [phase, mouseX, windowSize.w]);
+
+  useEffect(() => {
+    if (phase !== 'running_off' || windowSize.w === 0) return;
+    let raf = 0;
+    const halfW = windowSize.w / 2 + CHARACTER_WIDTH;
+    const tick = () => {
+      setCharacterX((prev) => {
+        const next = prev + RUN_SPEED * runDirectionRef.current;
+        if (runDirectionRef.current > 0 && next > halfW) {
+          queueMicrotask(() => setPhase('peeking'));
+          return 0;
+        }
+        if (runDirectionRef.current < 0 && next < -halfW) {
+          queueMicrotask(() => setPhase('peeking'));
+          return 0;
+        }
+        return next;
+      });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [phase, windowSize.w]);
+
+  const distToHead = Math.hypot(mouseX - headCenterX, mouseY - headCenterY);
   const cursorClose = distToHead < CURSOR_CLOSE_RADIUS;
+
+  const handlePeekerClick = () => {
+    if (phase === 'peeking') setPhase('pulling_up');
+  };
+
+  const sharedEyeProps = {
+    isBlinking,
+    pupils,
+    cursorClose,
+  };
 
   return (
     <div className="pointer-events-none fixed inset-0 z-10 flex justify-center items-end" aria-hidden>
@@ -148,65 +209,183 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
           0%, 100% { transform: translate(-50%, 52px); }
           50% { transform: translate(-50%, 48px); }
         }
+        @keyframes pullUpArmLeft {
+          0% { transform: rotate(0deg); opacity: 0; }
+          15% { transform: rotate(-55deg); opacity: 1; }
+          100% { transform: rotate(-55deg); opacity: 1; }
+        }
+        @keyframes pullUpArmRight {
+          0% { transform: rotate(0deg); opacity: 0; }
+          15% { transform: rotate(55deg); opacity: 1; }
+          100% { transform: rotate(55deg); opacity: 1; }
+        }
+        @keyframes pullUpBody {
+          0% { height: 0; opacity: 0; transform: translateY(20px); }
+          50% { height: 44px; opacity: 1; transform: translateY(-4px); }
+          100% { height: 44px; opacity: 1; transform: translateY(0); }
+        }
+        @keyframes standWobble {
+          0%, 100% { transform: translate(-50%, 0) rotate(0deg); }
+          25% { transform: translate(-50%, 0) rotate(1.5deg); }
+          75% { transform: translate(-50%, 0) rotate(-1.5deg); }
+        }
+        @keyframes runLegLeft {
+          0%, 100% { transform: translateY(0) rotate(-8deg); }
+          50% { transform: translateY(-6px) rotate(8deg); }
+        }
+        @keyframes runLegRight {
+          0%, 100% { transform: translateY(-6px) rotate(8deg); }
+          50% { transform: translateY(0) rotate(-8deg); }
+        }
+        @keyframes runArmPump {
+          0%, 100% { transform: rotate(-12deg); }
+          50% { transform: rotate(12deg); }
+        }
         .peeker-head {
           animation: peekBounce 0.5s ease-out forwards, peekBob 3s ease-in-out 0.6s infinite;
         }
+        .peeker-pull-up-arm-left { animation: pullUpArmLeft 0.35s ease-out forwards; }
+        .peeker-pull-up-arm-right { animation: pullUpArmRight 0.35s ease-out forwards; }
+        .peeker-pull-up-body {
+          animation: pullUpBody 0.6s cubic-bezier(0.34, 1.2, 0.64, 1) 0.15s forwards;
+        }
+        .peeker-stand-wobble {
+          animation: standWobble 0.4s ease-in-out;
+        }
+        .peeker-run-leg-left { animation: runLegLeft 0.15s ease-in-out infinite; }
+        .peeker-run-leg-right { animation: runLegRight 0.15s ease-in-out infinite; }
+        .peeker-run-arm { animation: runArmPump 0.2s ease-in-out infinite; }
       `}</style>
-      <div
-        className="peeker-head absolute rounded-full border border-white/10 bg-black/80 shadow-[0_0_20px_rgba(34,211,238,0.15)]"
-        style={{
-          width: PEEKER_HEAD_SIZE,
-          height: PEEKER_HEAD_SIZE,
-          left: '50%',
-          bottom: 0,
-        }}
-      >
-        <div className="absolute flex gap-6" style={{ left: 14, top: 14 }}>
-          <div
-            className="relative rounded-full bg-white/20 flex items-center justify-center overflow-visible transition-transform duration-75"
-            style={{
-              width: 20,
-              height: 20,
-              transform: cursorClose ? 'scale(1.1)' : 'scale(1)',
-              boxShadow: '0 0 12px rgba(34,211,238,0.4)',
-            }}
-          >
+
+      {phase === 'peeking' && (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={handlePeekerClick}
+          onKeyDown={(e) => e.key === 'Enter' && handlePeekerClick()}
+          className="peeker-head pointer-events-auto absolute cursor-pointer rounded-full border border-white/10 bg-black/80 shadow-[0_0_20px_rgba(34,211,238,0.15)]"
+          style={{
+            width: PEEKER_HEAD_SIZE,
+            height: PEEKER_HEAD_SIZE,
+            left: '50%',
+            bottom: 0,
+          }}
+          aria-hidden
+        >
+          <PeekerEyes {...sharedEyeProps} />
+        </div>
+      )}
+
+      {(phase === 'pulling_up' || phase === 'standing' || phase === 'running_off') && (
+        <div
+          className="pointer-events-none absolute flex flex-col items-center"
+          style={{
+            left: '50%',
+            bottom: 0,
+            transform: `translate(calc(-50% + ${characterX}px), 0)`,
+          }}
+        >
+          <div className="absolute flex gap-20" style={{ bottom: PEEKER_HEAD_SIZE + 40, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
             <div
-              className="absolute rounded-full bg-cyan-400 transition-transform duration-75"
-              style={{
-                width: 10,
-                height: 10,
-                left: '50%',
-                top: '50%',
-                transform: isBlinking
-                  ? 'translate(-50%,-50%) scaleY(0.1)'
-                  : `translate(calc(-50% + ${pupils.left.x}px), calc(-50% + ${pupils.left.y}px))`,
-              }}
+              className={`h-10 w-4 rounded-full border border-white/10 bg-black/80 shadow-[0_0_8px_rgba(34,211,238,0.2)] origin-bottom ${phase === 'pulling_up' ? 'peeker-pull-up-arm-left' : ''} ${phase === 'running_off' ? 'peeker-run-arm' : ''}`}
+              style={phase === 'standing' ? { transform: 'rotate(-15deg)' } : undefined}
+            />
+            <div
+              className={`h-10 w-4 rounded-full border border-white/10 bg-black/80 shadow-[0_0_8px_rgba(34,211,238,0.2)] origin-bottom ${phase === 'pulling_up' ? 'peeker-pull-up-arm-right' : ''} ${phase === 'running_off' ? 'peeker-run-arm' : ''}`}
+              style={phase === 'standing' ? { transform: 'rotate(15deg)' } : undefined}
             />
           </div>
+
           <div
-            className="relative rounded-full bg-white/20 flex items-center justify-center overflow-visible transition-transform duration-75"
+            className={`relative rounded-full border border-white/10 bg-black/80 shadow-[0_0_20px_rgba(34,211,238,0.15)] ${phase === 'standing' ? 'peeker-stand-wobble' : ''}`}
             style={{
-              width: 20,
-              height: 20,
-              transform: cursorClose ? 'scale(1.1)' : 'scale(1)',
-              boxShadow: '0 0 12px rgba(34,211,238,0.4)',
+              width: PEEKER_HEAD_SIZE,
+              height: PEEKER_HEAD_SIZE,
+              marginBottom: -4,
             }}
           >
+            <PeekerEyes {...sharedEyeProps} />
+          </div>
+
+          <div
+            className={`overflow-hidden rounded-b-2xl border border-t-0 border-white/10 bg-black/80 shadow-[0_0_12px_rgba(34,211,238,0.1)] ${phase === 'pulling_up' ? 'peeker-pull-up-body' : ''}`}
+            style={{
+              width: 56,
+              height: phase === 'pulling_up' ? 0 : 44,
+              marginBottom: 0,
+            }}
+          />
+
+          <div className="flex justify-center gap-2" style={{ marginTop: -2 }}>
             <div
-              className="absolute rounded-full bg-cyan-400 transition-transform duration-75"
-              style={{
-                width: 10,
-                height: 10,
-                left: '50%',
-                top: '50%',
-                transform: isBlinking
-                  ? 'translate(-50%,-50%) scaleY(0.1)'
-                  : `translate(calc(-50% + ${pupils.right.x}px), calc(-50% + ${pupils.right.y}px))`,
-              }}
+              className={`h-4 w-5 rounded-b-md border border-white/10 bg-black/80 ${phase === 'running_off' ? 'peeker-run-leg-left' : ''}`}
+              style={{ transformOrigin: 'top center' }}
+            />
+            <div
+              className={`h-4 w-5 rounded-b-md border border-white/10 bg-black/80 ${phase === 'running_off' ? 'peeker-run-leg-right' : ''}`}
+              style={{ transformOrigin: 'top center' }}
             />
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function PeekerEyes({
+  isBlinking,
+  pupils,
+  cursorClose,
+}: {
+  isBlinking: boolean;
+  pupils: { left: { x: number; y: number }; right: { x: number; y: number } };
+  cursorClose: boolean;
+}) {
+  return (
+    <div className="absolute flex gap-6" style={{ left: 14, top: 14 }}>
+      <div
+        className="relative rounded-full bg-white/20 flex items-center justify-center overflow-visible transition-transform duration-75"
+        style={{
+          width: 20,
+          height: 20,
+          transform: cursorClose ? 'scale(1.1)' : 'scale(1)',
+          boxShadow: '0 0 12px rgba(34,211,238,0.4)',
+        }}
+      >
+        <div
+          className="absolute rounded-full bg-cyan-400 transition-transform duration-75"
+          style={{
+            width: 10,
+            height: 10,
+            left: '50%',
+            top: '50%',
+            transform: isBlinking
+              ? 'translate(-50%,-50%) scaleY(0.1)'
+              : `translate(calc(-50% + ${pupils.left.x}px), calc(-50% + ${pupils.left.y}px))`,
+          }}
+        />
+      </div>
+      <div
+        className="relative rounded-full bg-white/20 flex items-center justify-center overflow-visible transition-transform duration-75"
+        style={{
+          width: 20,
+          height: 20,
+          transform: cursorClose ? 'scale(1.1)' : 'scale(1)',
+          boxShadow: '0 0 12px rgba(34,211,238,0.4)',
+        }}
+      >
+        <div
+          className="absolute rounded-full bg-cyan-400 transition-transform duration-75"
+          style={{
+            width: 10,
+            height: 10,
+            left: '50%',
+            top: '50%',
+            transform: isBlinking
+              ? 'translate(-50%,-50%) scaleY(0.1)'
+              : `translate(calc(-50% + ${pupils.right.x}px), calc(-50% + ${pupils.right.y}px))`,
+          }}
+        />
       </div>
     </div>
   );
