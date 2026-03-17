@@ -7,6 +7,8 @@ if (typeof window !== 'undefined') {
     posthog.init(key, {
       api_host: host,
       defaults: '2026-01-30',
+      // Avoid Storage Access API prompt ("Access other apps and services") in Safari/strict browsers
+      persistence: 'sessionStorage',
     });
   }
 }

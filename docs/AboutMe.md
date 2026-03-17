@@ -17,7 +17,8 @@ I've started my pilot's license twice. The dream is a float plane and remote lak
 
 I studied computer science and cognitive science. I'm Canadian, living in Seattle. BC is three times the size of Japan and I think about that more often than is probably normal.
 
-[email] · [github] · [linkedin]
+[email] · [github] · [linkedin] · [medium]
 https://www.linkedin.com/in/daniel-visca/
 https://github.com/DanielVisca
+https://medium.com/@danielvisca
 danielvisca96@gmail.com
