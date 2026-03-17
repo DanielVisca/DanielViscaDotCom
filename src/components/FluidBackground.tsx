@@ -6,6 +6,7 @@ import posthog from 'posthog-js';
 const FLUID_INTERACTION_THROTTLE_MS = 5000;
 const FLUID_HINT_DELAY_MS = 65000;
 const FLUID_HINT_DURATION_MS = 2200;
+const FLUID_SCROLL_THROTTLE_MS = 120;
 
 export default function FluidBackground() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -31,6 +32,43 @@ export default function FluidBackground() {
       if (typeof trigger === 'function') trigger();
     }, BURST_INTERVAL_MS);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches) return;
+    let lastFlush = 0;
+    let accumulatedDeltaY = 0;
+    const onWheel = (e: WheelEvent) => {
+      accumulatedDeltaY += e.deltaY;
+      const now = Date.now();
+      if (now - lastFlush >= FLUID_SCROLL_THROTTLE_MS) {
+        lastFlush = now;
+        const scrollSplat = (window as unknown as {
+          __FLUID_SCROLL_SPLAT?: (deltaY: number, x?: number, y?: number) => void;
+        }).__FLUID_SCROLL_SPLAT;
+        if (typeof scrollSplat === 'function') {
+          const main = document.getElementById('main');
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+          if (main && w > 0 && h > 0) {
+            const rect = main.getBoundingClientRect();
+            const xCenter = (rect.left + rect.width / 2) / w;
+            const scrollDown = accumulatedDeltaY > 0;
+            const yLeading =
+              scrollDown
+                ? 1 - rect.top / h
+                : 1 - (rect.top + rect.height) / h;
+            scrollSplat(accumulatedDeltaY, xCenter, yLeading);
+          } else {
+            scrollSplat(accumulatedDeltaY);
+          }
+        }
+        accumulatedDeltaY = 0;
+      }
+    };
+    window.addEventListener('wheel', onWheel, { passive: true });
+    return () => window.removeEventListener('wheel', onWheel);
   }, []);
 
   useEffect(() => {
