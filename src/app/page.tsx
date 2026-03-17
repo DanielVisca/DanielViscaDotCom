@@ -4,6 +4,7 @@ import FluidBackground from '@/components/FluidBackground';
 import AboutContent from '@/components/AboutContent';
 import CursorQuirks from '@/components/CursorQuirks';
 import PhotoCollage from '@/components/PhotoCollage';
+import PageReadTracker from '@/components/PageReadTracker';
 
 const PHOTO_ITEMS = [
   { src: '/imgs/selfieonrainier.jpeg', alt: 'Selfie on Rainier at sunrise', caption: 'Rainier sunrise' },
@@ -57,6 +58,7 @@ export default function Home() {
         </div>
       </div>
       <CursorQuirks />
+      <PageReadTracker />
     </div>
   );
 }
