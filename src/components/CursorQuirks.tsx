@@ -13,13 +13,14 @@ const PEEKER_LERP = 0.08;
 const PUPIL_MAX_OFFSET = 4;
 const CURSOR_CLOSE_RADIUS = 80;
 
-type PeekerPhase = 'peeking' | 'pulling_up' | 'standing' | 'running_off' | 'off_screen';
+type PeekerPhase = 'peeking' | 'pulling_up' | 'standing' | 'standing_with_bubble' | 'running_off' | 'off_screen';
 const PULL_UP_DURATION_MS = 800;
 const STANDING_BEFORE_RUN_MS = 500;
 const RUN_SPEED = 6;
 const CHARACTER_WIDTH = 80;
 const OFF_SCREEN_DELAY_MS = 30000;
 const PEEKER_INITIAL_DELAY_MS = 25000;
+const LONG_VISIT_MS = 45 * 60 * 1000;
 
 export default function CursorQuirks() {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
@@ -108,6 +109,8 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
   const [windowSize, setWindowSize] = useState({ w: 0, h: 0 });
   const [isBlinking, setIsBlinking] = useState(false);
   const rafRef = useRef<number>(0);
+  const mountTimeRef = useRef(Date.now());
+  const longVisitStandupRef = useRef(false);
 
   useEffect(() => {
     const updateSize = () => setWindowSize({ w: window.innerWidth, h: window.innerHeight });
@@ -115,6 +118,34 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
   }, []);
+
+  useEffect(() => {
+    const triggerLongVisitStandup = () => {
+      if (phase !== 'peeking' || longVisitStandupRef.current) return;
+      longVisitStandupRef.current = true;
+      setPhase('pulling_up');
+    };
+
+    const interval = setInterval(() => {
+      if (Date.now() - mountTimeRef.current >= LONG_VISIT_MS) {
+        triggerLongVisitStandup();
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [phase]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'p') {
+        e.preventDefault();
+        if (phase !== 'peeking' || longVisitStandupRef.current) return;
+        longVisitStandupRef.current = true;
+        setPhase('pulling_up');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase]);
 
   const headCenterX = windowSize.w / 2 + characterX;
   const headCenterY =
@@ -166,7 +197,16 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
 
   useEffect(() => {
     if (phase !== 'pulling_up') return;
-    const t = setTimeout(() => setPhase('standing'), PULL_UP_DURATION_MS);
+    const t = setTimeout(() => {
+      if (longVisitStandupRef.current) {
+        if (typeof posthog !== 'undefined' && posthog.capture) {
+          posthog.capture('long_visit_standup_seen');
+        }
+        setPhase('standing_with_bubble');
+      } else {
+        setPhase('standing');
+      }
+    }, PULL_UP_DURATION_MS);
     return () => clearTimeout(t);
   }, [phase]);
 
@@ -217,6 +257,9 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         posthog.capture('peeker_clicked');
       }
       setPhase('pulling_up');
+    }
+    if (phase === 'standing_with_bubble') {
+      setPhase('running_off');
     }
   };
 
@@ -281,6 +324,9 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         .peeker-stand-wobble {
           animation: standWobble 0.4s ease-in-out;
         }
+        .peeker-stand-wobble-idle {
+          animation: standWobble 2s ease-in-out infinite;
+        }
         .peeker-run-leg-left { animation: runLegLeft 0.15s ease-in-out infinite; }
         .peeker-run-leg-right { animation: runLegRight 0.15s ease-in-out infinite; }
         .peeker-run-arm { animation: runArmPump 0.2s ease-in-out infinite; }
@@ -305,28 +351,41 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         </div>
       )}
 
-      {(phase === 'pulling_up' || phase === 'standing' || phase === 'running_off') && (
+      {(phase === 'pulling_up' || phase === 'standing' || phase === 'standing_with_bubble' || phase === 'running_off') && (
         <div
-          className="pointer-events-none absolute flex flex-col items-center"
+          className={phase === 'standing_with_bubble' ? 'pointer-events-auto absolute flex flex-col items-center cursor-pointer' : 'pointer-events-none absolute flex flex-col items-center'}
           style={{
             left: '50%',
             bottom: 0,
             transform: `translate(calc(-50% + ${characterX}px), 0)`,
           }}
+          {...(phase === 'standing_with_bubble' ? { role: 'button', tabIndex: 0, onClick: handlePeekerClick, onKeyDown: (e: React.KeyboardEvent) => e.key === 'Enter' && handlePeekerClick() } : {})}
         >
+          {phase === 'standing_with_bubble' && (
+            <div
+              className="pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-2xl bg-white px-5 py-4 text-base text-gray-900 shadow-lg border border-gray-200/80 leading-relaxed z-20"
+              style={{
+                bottom: PEEKER_HEAD_SIZE + 44 + 24,
+                width: 'min(340px, calc(100vw - 2rem))',
+                minWidth: 260,
+              }}
+            >
+              Hey, I know Daniel is really cool and great and all... but you&apos;ve been here for a really long time and you are probably really cool too with your own life to live. I think we should part ways now. It&apos;s not me, it&apos;s you.
+            </div>
+          )}
           <div className="absolute flex gap-20" style={{ bottom: PEEKER_HEAD_SIZE + 40, zIndex: 2, left: '50%', transform: 'translateX(-50%)' }}>
             <div
               className={`h-10 w-4 rounded-full border border-white/10 bg-black/80 shadow-[0_0_8px_rgba(34,211,238,0.2)] origin-bottom ${phase === 'pulling_up' ? 'peeker-pull-up-arm-left' : ''} ${phase === 'running_off' ? 'peeker-run-arm' : ''}`}
-              style={phase === 'standing' ? { transform: 'rotate(-15deg)' } : undefined}
+              style={phase === 'standing' || phase === 'standing_with_bubble' ? { transform: 'rotate(-15deg)' } : undefined}
             />
             <div
               className={`h-10 w-4 rounded-full border border-white/10 bg-black/80 shadow-[0_0_8px_rgba(34,211,238,0.2)] origin-bottom ${phase === 'pulling_up' ? 'peeker-pull-up-arm-right' : ''} ${phase === 'running_off' ? 'peeker-run-arm' : ''}`}
-              style={phase === 'standing' ? { transform: 'rotate(15deg)' } : undefined}
+              style={phase === 'standing' || phase === 'standing_with_bubble' ? { transform: 'rotate(15deg)' } : undefined}
             />
           </div>
 
           <div
-            className={`relative rounded-full border border-white/10 bg-black/80 shadow-[0_0_20px_rgba(34,211,238,0.15)] ${phase === 'standing' ? 'peeker-stand-wobble' : ''}`}
+            className={`relative rounded-full border border-white/10 bg-black/80 shadow-[0_0_20px_rgba(34,211,238,0.15)] ${phase === 'standing' ? 'peeker-stand-wobble' : ''} ${phase === 'standing_with_bubble' ? 'peeker-stand-wobble-idle' : ''}`}
             style={{
               width: PEEKER_HEAD_SIZE,
               height: PEEKER_HEAD_SIZE,

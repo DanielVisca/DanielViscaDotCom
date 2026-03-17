@@ -37,6 +37,51 @@ export default function FluidBackground() {
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (mq.matches) return;
+    const flush = (deltaY: number) => {
+      const scrollSplat = (window as unknown as {
+        __FLUID_SCROLL_SPLAT?: (deltaY: number, x?: number, y?: number) => void;
+      }).__FLUID_SCROLL_SPLAT;
+      if (typeof scrollSplat !== 'function') return;
+      const readingBlock = document.getElementById('reading-block');
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (readingBlock && w > 0 && h > 0) {
+        const rect = readingBlock.getBoundingClientRect();
+        const xCenter = (rect.left + rect.width / 2) / w;
+        const xLeft = rect.left / w;
+        const xRight = rect.right / w;
+        const yCenterFluid = 1 - (rect.top + rect.height / 2) / h;
+        const scrollDown = deltaY > 0;
+        const yLeading =
+          scrollDown
+            ? 1 - rect.top / h
+            : 1 - (rect.top + rect.height) / h;
+        scrollSplat(deltaY, xCenter, yLeading);
+        scrollSplat(deltaY, xLeft, yCenterFluid);
+        scrollSplat(deltaY, xRight, yCenterFluid);
+      } else {
+        scrollSplat(deltaY);
+      }
+    };
+
+    const isCoarse = window.matchMedia('(pointer: coarse)').matches;
+    if (isCoarse) {
+      let lastFlushTime = 0;
+      let lastFlushScrollY = window.scrollY;
+      const onScroll = () => {
+        const now = Date.now();
+        if (now - lastFlushTime >= FLUID_SCROLL_THROTTLE_MS) {
+          const scrollY = window.scrollY;
+          const deltaY = scrollY - lastFlushScrollY;
+          lastFlushScrollY = scrollY;
+          lastFlushTime = now;
+          if (deltaY !== 0) flush(deltaY);
+        }
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      return () => window.removeEventListener('scroll', onScroll);
+    }
+
     let lastFlush = 0;
     let accumulatedDeltaY = 0;
     const onWheel = (e: WheelEvent) => {
@@ -44,31 +89,7 @@ export default function FluidBackground() {
       const now = Date.now();
       if (now - lastFlush >= FLUID_SCROLL_THROTTLE_MS) {
         lastFlush = now;
-        const scrollSplat = (window as unknown as {
-          __FLUID_SCROLL_SPLAT?: (deltaY: number, x?: number, y?: number) => void;
-        }).__FLUID_SCROLL_SPLAT;
-        if (typeof scrollSplat === 'function') {
-          const readingBlock = document.getElementById('reading-block');
-          const w = window.innerWidth;
-          const h = window.innerHeight;
-          if (readingBlock && w > 0 && h > 0) {
-            const rect = readingBlock.getBoundingClientRect();
-            const xCenter = (rect.left + rect.width / 2) / w;
-            const xLeft = rect.left / w;
-            const xRight = rect.right / w;
-            const yCenterFluid = 1 - (rect.top + rect.height / 2) / h;
-            const scrollDown = accumulatedDeltaY > 0;
-            const yLeading =
-              scrollDown
-                ? 1 - rect.top / h
-                : 1 - (rect.top + rect.height) / h;
-            scrollSplat(accumulatedDeltaY, xCenter, yLeading);
-            scrollSplat(accumulatedDeltaY, xLeft, yCenterFluid);
-            scrollSplat(accumulatedDeltaY, xRight, yCenterFluid);
-          } else {
-            scrollSplat(accumulatedDeltaY);
-          }
-        }
+        flush(accumulatedDeltaY);
         accumulatedDeltaY = 0;
       }
     };
