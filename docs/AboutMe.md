@@ -9,9 +9,9 @@ I'm also building **OutfitterHQ** — software for wilderness canoe and kayak ou
 
 Some other stuff about me:
 
-I've summited Rainier, Adams, Baker, Glacier Peak, St. Helens, Hood, and a bunch of others. Sunrise above 10,000 feet is the best thing I've ever experienced and I will never stop chasing it. I love ski touring and have done backcountry trips in remote parts of BC.
+I've summited Rainier, Adams, Baker, Glacier Peak, St. Helens, Hood, and [a bunch of others](https://www.google.com/maps/d/edit?mid=1158-OkHnCZfANnvwrIPm7YByP5-3tq0&usp=sharing). Sunrise above 10,000 feet is the best thing I've ever experienced and I will never stop chasing it. I love ski touring and have done backcountry trips in remote parts of BC.
 
-I flew to Japan, found the cheapest used bike with a rack on it that I could buy as a non-resident (this was weirdly hard, all bikes need to be registered like cars), and biked from Hiroshima to Fuji (where I sold the bike to an Indian Restaurant). We took mountain routes and biked through rain in flip flops to save our shoes. Got headbutted by a bowing deer. Got surrounded by monkeys who decided we were in THEIR campsite. 10/10 would do again.
+I flew to Japan, found the cheapest used bike with a rack on it that I could buy as a non-resident (this was weirdly hard, all bikes need to be registered like cars), and [biked from Hiroshima to Fuji](https://www.google.com/maps/d/edit?mid=1rmE0NaiDilRwKi9sXKGW_b3FNKp7LpU&usp=sharing) (where I sold the bike to an Indian Restaurant). We took mountain routes and biked through rain in flip flops to save our shoes. Got headbutted by a bowing deer. Got surrounded by monkeys who decided we were in THEIR campsite. 10/10 would do again.
 
 I did a 10 day Vipassana silent meditation retreat in Sweden. It was one of the hardest things I've done and also the thing that made my cognitive science degree suddenly make sense. I finally got to experience all the things I'd only studied.
 

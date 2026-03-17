@@ -19,10 +19,11 @@ function prepareAboutContent(raw: string): string {
   const linkedin = 'https://www.linkedin.com/in/daniel-visca/';
   const github = 'https://github.com/DanielVisca';
   const medium = 'https://medium.com/@danielvisca';
-  const goodreads = 'https://www.goodreads.com/user/show/54860314-daniel';
+  const books = 'https://www.goodreads.com/user/show/54860314-daniel';
+  const strava = 'https://www.strava.com/athletes/69493448';
   const emailSubject = encodeURIComponent("Hey from the internet (your site said I should say hi 👋)");
   const email = `https://mail.google.com/mail/?view=cm&fs=1&to=danielvisca96@gmail.com&su=${emailSubject}`;
-  const contactWithLinks = `[email](${email}) · [github](${github}) · [linkedin](${linkedin}) · [medium](${medium}) · [goodreads](${goodreads}) · [resume](/resume.pdf)`;
+  const contactWithLinks = `[email](${email}) · [github](${github}) · [linkedin](${linkedin}) · [medium](${medium}) · [books](${books}) · [strava](${strava}) · [resume](/resume.pdf)`;
 
   const buckAndBoo = "Oh and while you're here... my mom is a graphic designer and makes awesome shirts. It would make her week if you bought one → [Buck & Boo](https://buckandboo.com/).";
 
