@@ -181,6 +181,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
     const triggerLongVisitStandup = () => {
       if (phase !== 'peeking' || longVisitStandupRef.current) return;
       longVisitStandupRef.current = true;
+      setCharacterX(0);
       setPhase('pulling_up');
     };
 
@@ -198,6 +199,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         e.preventDefault();
         if (phase !== 'peeking' || longVisitStandupRef.current) return;
         longVisitStandupRef.current = true;
+        setCharacterX(0);
         setPhase('pulling_up');
       }
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
@@ -206,6 +208,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
           if (longVisitStandupRef.current) return;
           longVisitStandupRef.current = true;
           startAdventureAfterPullUpRef.current = true;
+          setCharacterX(0);
           setPhase('pulling_up');
         } else if (phase === 'standing' || phase === 'standing_with_bubble') {
           setPhase('hop_on_bike');
@@ -299,7 +302,10 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
 
   useEffect(() => {
     if (phase !== 'off_screen') return;
-    const t = setTimeout(() => setPhase('peeking'), OFF_SCREEN_DELAY_MS);
+    const t = setTimeout(() => {
+      setCharacterX(0);
+      setPhase('peeking');
+    }, OFF_SCREEN_DELAY_MS);
     return () => clearTimeout(t);
   }, [phase]);
 
@@ -510,6 +516,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         posthog.capture('peeker_clicked');
       }
       startAdventureAfterPullUpRef.current = Math.random() < ADVENTURE_CHANCE;
+      setCharacterX(0);
       setPhase('pulling_up');
     }
     if (phase === 'standing_with_bubble') {
