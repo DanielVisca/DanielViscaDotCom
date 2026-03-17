@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Daniel Visca",
-  description: "Software engineer, builder, professional putterer. PostHog, lakes, mountains.",
+  title: "Hi 👋 I'm Daniel.",
+  description: "I do software stuff, builder, professional putterer. PostHog, lakes, mountains.",
 };
 
 export default function RootLayout({

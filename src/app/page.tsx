@@ -17,8 +17,19 @@ function getAboutContent(): string {
   return fs.readFileSync(filePath, 'utf-8');
 }
 
+function splitLeadAndRest(raw: string): { lead: string; rest: string } {
+  const trimmed = raw.trim();
+  const firstNewline = trimmed.indexOf('\n');
+  if (firstNewline === -1) return { lead: trimmed, rest: '' };
+  return {
+    lead: trimmed.slice(0, firstNewline).trim(),
+    rest: trimmed.slice(firstNewline + 1).trim(),
+  };
+}
+
 export default function Home() {
   const aboutRaw = getAboutContent();
+  const { lead, rest } = splitLeadAndRest(aboutRaw);
 
   return (
     <div className="min-h-screen bg-black">
@@ -32,8 +43,16 @@ export default function Home() {
       <div id="main" className="relative z-[1] min-h-screen pointer-events-none" role="main">
         <div className="pointer-events-auto max-w-2xl mx-auto px-6 py-12 sm:py-16 md:py-20">
           <div className="rounded-2xl bg-black/60 backdrop-blur-sm border border-white/10 p-6 sm:p-8 md:p-10 shadow-2xl">
-            <AboutContent content={aboutRaw} />
+            <h1 className="text-3xl sm:text-4xl font-semibold mb-2" style={{ textShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
+              Hi 👋 I&apos;m Daniel.
+            </h1>
+            <p className="text-lg text-white/95 mb-8" style={{ textShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
+              {lead}
+            </p>
             <PhotoCollage items={PHOTO_ITEMS} />
+            <div className="mt-8">
+              <AboutContent content={rest} />
+            </div>
           </div>
         </div>
       </div>

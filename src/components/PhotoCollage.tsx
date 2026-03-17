@@ -10,20 +10,19 @@ const LIGHTBOX_SIZE = 640;
 
 export default function PhotoCollage({ items }: { items: PhotoItem[] }) {
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [lightbox, setLightbox] = useState<PhotoItem | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const lightboxContentRef = useRef<HTMLDivElement>(null);
 
+  const lightbox = lightboxIndex !== null ? items[lightboxIndex] : null;
+
   useEffect(() => {
-    if (lightbox) {
+    if (lightboxIndex !== null) {
       closeRef.current?.focus({ preventScroll: true });
-      const contentEl = lightboxContentRef.current;
-      if (contentEl) {
-        const behavior = reducedMotion ? ('auto' as const) : ('smooth' as const);
-        contentEl.scrollIntoView({ block: 'center', inline: 'center', behavior });
-      }
+      const behavior = reducedMotion ? ('auto' as const) : ('smooth' as const);
+      window.scrollTo({ top: 0, left: 0, behavior });
     }
-  }, [lightbox, reducedMotion]);
+  }, [lightboxIndex, reducedMotion]);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -33,13 +32,22 @@ export default function PhotoCollage({ items }: { items: PhotoItem[] }) {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
+  const goPrev = useCallback(() => {
+    setLightboxIndex((i) => (i === null ? null : i === 0 ? items.length - 1 : i - 1));
+  }, [items.length]);
+  const goNext = useCallback(() => {
+    setLightboxIndex((i) => (i === null ? null : i === items.length - 1 ? 0 : i + 1));
+  }, [items.length]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && lightbox) setLightbox(null);
+      if (lightboxIndex === null) return;
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'ArrowLeft') goPrev();
+      if (e.key === 'ArrowRight') goNext();
     },
-    [lightbox]
+    [lightboxIndex, goPrev, goNext]
   );
-
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -57,7 +65,7 @@ export default function PhotoCollage({ items }: { items: PhotoItem[] }) {
           <button
             key={item.src}
             type="button"
-            onClick={() => setLightbox(item)}
+            onClick={() => setLightboxIndex(items.findIndex((i) => i.src === item.src))}
             className="relative block w-full aspect-square max-w-[140px] mx-auto rounded-xl border border-white/20 overflow-hidden shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black opacity-90 hover:opacity-100 hover:border-cyan-400/50 hover:shadow-cyan-500/20 transition-all duration-200 focus:not-sr-only"
             style={{
               transitionDuration: reducedMotion ? '0s' : '200ms',
@@ -86,24 +94,40 @@ export default function PhotoCollage({ items }: { items: PhotoItem[] }) {
 
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/90 pt-12 pb-12 px-4"
           role="dialog"
           aria-modal="true"
           aria-label={`Image: ${lightbox.caption}`}
-          onClick={() => setLightbox(null)}
+          onClick={() => setLightboxIndex(null)}
         >
           <button
             ref={closeRef}
             type="button"
-            className="absolute top-4 right-4 text-white/80 hover:text-white text-2xl leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded"
-            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 z-10 text-white/80 hover:text-white text-2xl leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded"
+            onClick={() => setLightboxIndex(null)}
             aria-label="Close"
           >
             &times;
           </button>
+          <button
+            type="button"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center text-white/80 hover:text-white text-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded"
+            onClick={(e) => { e.stopPropagation(); goPrev(); }}
+            aria-label="Previous image"
+          >
+            &#8592;
+          </button>
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center text-white/80 hover:text-white text-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded"
+            onClick={(e) => { e.stopPropagation(); goNext(); }}
+            aria-label="Next image"
+          >
+            &#8594;
+          </button>
           <div
             ref={lightboxContentRef}
-            className="relative max-w-full max-h-[85vh] flex flex-col items-center"
+            className="relative max-w-full max-h-[75vh] flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
             <Image
@@ -111,7 +135,7 @@ export default function PhotoCollage({ items }: { items: PhotoItem[] }) {
               alt={lightbox.alt}
               width={LIGHTBOX_SIZE}
               height={LIGHTBOX_SIZE}
-              className="max-w-full max-h-[75vh] w-auto h-auto object-contain rounded-lg"
+              className="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-lg"
               sizes="100vw"
             />
             <p className="mt-3 text-sm text-white/80 text-center">{lightbox.caption}</p>
