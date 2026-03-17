@@ -1,5 +1,6 @@
 'use client';
 
+import posthog from 'posthog-js';
 import { useEffect, useRef, useState } from 'react';
 
 const LERP = 0.08;
@@ -211,7 +212,12 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
   const cursorClose = distToHead < CURSOR_CLOSE_RADIUS;
 
   const handlePeekerClick = () => {
-    if (phase === 'peeking') setPhase('pulling_up');
+    if (phase === 'peeking') {
+      if (typeof posthog !== 'undefined' && posthog.capture) {
+        posthog.capture('peeker_clicked');
+      }
+      setPhase('pulling_up');
+    }
   };
 
   const sharedEyeProps = {
