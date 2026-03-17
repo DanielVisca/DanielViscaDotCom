@@ -111,10 +111,6 @@ pointers.push(new pointerPrototype());
 
 const { gl, ext } = getWebGLContext(canvas);
 
-canvas.addEventListener('webglcontextlost', function () {
-    if (typeof window !== 'undefined') window.__FLUID_CONTEXT_LOST__ = true;
-});
-
 if (isMobile()) {
     config.DYE_RESOLUTION = 512;
 }
@@ -1188,10 +1184,7 @@ let colorUpdateTimer = 0.0;
 update();
 
 function update () {
-    if (gl.isContextLost()) {
-        if (typeof window !== 'undefined') window.__FLUID_CONTEXT_LOST__ = true;
-        return;
-    }
+    if (gl.isContextLost()) return;
     const dt = calcDeltaTime();
     if (resizeCanvas())
         initFramebuffers();
