@@ -153,7 +153,7 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
         }
       `}</style>
       <div
-        className="peeker-head absolute rounded-full border border-amber-950/30 bg-black/80 shadow-[0_0_24px_rgba(251,191,36,0.12)]"
+        className="peeker-head absolute rounded-full border border-white/10 bg-black/80 shadow-[0_0_20px_rgba(34,211,238,0.15)]"
         style={{
           width: PEEKER_HEAD_SIZE,
           height: PEEKER_HEAD_SIZE,
@@ -163,16 +163,16 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
       >
         <div className="absolute flex gap-6" style={{ left: 14, top: 14 }}>
           <div
-            className="relative rounded-full bg-amber-100/25 flex items-center justify-center overflow-visible transition-transform duration-75"
+            className="relative rounded-full bg-white/20 flex items-center justify-center overflow-visible transition-transform duration-75"
             style={{
               width: 20,
               height: 20,
               transform: cursorClose ? 'scale(1.1)' : 'scale(1)',
-              boxShadow: '0 0 14px rgba(251,191,36,0.25)',
+              boxShadow: '0 0 12px rgba(34,211,238,0.4)',
             }}
           >
             <div
-              className="absolute rounded-full bg-amber-400 transition-transform duration-75"
+              className="absolute rounded-full bg-cyan-400 transition-transform duration-75"
               style={{
                 width: 10,
                 height: 10,
@@ -185,16 +185,16 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
             />
           </div>
           <div
-            className="relative rounded-full bg-amber-100/25 flex items-center justify-center overflow-visible transition-transform duration-75"
+            className="relative rounded-full bg-white/20 flex items-center justify-center overflow-visible transition-transform duration-75"
             style={{
               width: 20,
               height: 20,
               transform: cursorClose ? 'scale(1.1)' : 'scale(1)',
-              boxShadow: '0 0 14px rgba(251,191,36,0.25)',
+              boxShadow: '0 0 12px rgba(34,211,238,0.4)',
             }}
           >
             <div
-              className="absolute rounded-full bg-amber-400 transition-transform duration-75"
+              className="absolute rounded-full bg-cyan-400 transition-transform duration-75"
               style={{
                 width: 10,
                 height: 10,
@@ -207,18 +207,6 @@ function Peeker({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
             />
           </div>
         </div>
-        <div
-          className="absolute bg-transparent"
-          style={{
-            width: 24,
-            height: 12,
-            left: 28,
-            top: 40,
-            borderBottom: '2px solid rgba(251,191,36,0.5)',
-            borderRadius: '0 0 50% 50%',
-          }}
-          aria-hidden
-        />
       </div>
     </div>
   );
